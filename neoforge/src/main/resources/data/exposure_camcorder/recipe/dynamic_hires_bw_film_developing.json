@@ -1,0 +1,27 @@
+{
+    "type":  "exposure:film_developing",
+    "film":  {
+                 "item":  "exposure_camcorder:dynamic_hires_bw_film"
+             },
+    "ingredients":  [
+                        [
+                            {
+                                "type":  "neoforge:components",
+                                "items":  "minecraft:potion",
+                                "components":  {
+                                                   "minecraft:potion_contents":  {
+                                                                                     "potion":  "minecraft:water"
+                                                                                 }
+                                               }
+                            }
+                        ],
+                        [
+                            {
+                                "item":  "minecraft:calcite"
+                            }
+                        ]
+                    ],
+    "result":  {
+                   "id":  "exposure_camcorder:developed_dynamic_bw_film"
+               }
+}

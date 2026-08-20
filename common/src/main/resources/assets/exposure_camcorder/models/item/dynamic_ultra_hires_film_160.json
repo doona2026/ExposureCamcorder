@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "exposure_camcorder:item/dynamic_ultra_hires_film_160"
+  }
+}

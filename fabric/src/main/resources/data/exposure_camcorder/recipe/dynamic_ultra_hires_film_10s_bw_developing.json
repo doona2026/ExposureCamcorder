@@ -1,0 +1,22 @@
+{
+  "type": "exposure:film_developing",
+  "film": {
+    "item": "exposure_camcorder:dynamic_ultra_hires_film_10s_bw"
+  },
+  "ingredients": [
+    {
+      "fabric:type": "fabric:components",
+      "base": {
+        "item": "minecraft:potion"
+      },
+      "components": {
+        "minecraft:potion_contents": {
+          "potion": "minecraft:water"
+        }
+      }
+    }
+  ],
+  "result": {
+    "id": "exposure_camcorder:developed_dynamic_bw_film"
+  }
+}

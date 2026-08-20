@@ -1,0 +1,48 @@
+{
+    "type":  "exposure:film_developing",
+    "film":  {
+                 "item":  "exposure_camcorder:dynamic_ultra_hires_bw_film_160"
+             },
+    "ingredients":  [
+                        [
+                            {
+                                "type":  "neoforge:components",
+                                "items":  "minecraft:potion",
+                                "components":  {
+                                                   "minecraft:potion_contents":  {
+                                                                                     "potion":  "minecraft:water"
+                                                                                 }
+                                               }
+                            }
+                        ],
+                        [
+                            {
+                                "type":  "neoforge:components",
+                                "items":  "minecraft:potion",
+                                "components":  {
+                                                   "minecraft:potion_contents":  {
+                                                                                     "potion":  "minecraft:water"
+                                                                                 }
+                                               }
+                            }
+                        ],
+                        [
+                            {
+                                "item":  "minecraft:quartz"
+                            }
+                        ],
+                        [
+                            {
+                                "item":  "minecraft:calcite"
+                            }
+                        ],
+                        [
+                            {
+                                "item":  "minecraft:amethyst_shard"
+                            }
+                        ]
+                    ],
+    "result":  {
+                   "id":  "exposure_camcorder:developed_dynamic_bw_film"
+               }
+}

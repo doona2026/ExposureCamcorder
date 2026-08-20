@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "equipment",
+  "ingredients": [
+    {
+      "item": "exposure_camcorder:dynamic_ultra_hires_bw_film"
+    },
+    {
+      "item": "exposure_camcorder:dynamic_ultra_hires_bw_film"
+    }
+  ],
+  "result": {
+    "id": "exposure_camcorder:dynamic_ultra_hires_bw_film_80"
+  }
+}

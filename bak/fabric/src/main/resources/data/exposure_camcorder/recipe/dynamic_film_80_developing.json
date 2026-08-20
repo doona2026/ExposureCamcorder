@@ -1,0 +1,47 @@
+{
+    "type":  "exposure:film_developing",
+    "film":  {
+                 "item":  "exposure_camcorder:dynamic_film_80"
+             },
+    "ingredients":  [
+                        {
+                            "fabric:type":  "fabric:components",
+                            "base":  {
+                                         "item":  "minecraft:potion"
+                                     },
+                            "components":  {
+                                               "minecraft:potion_contents":  {
+                                                                                 "potion":  "minecraft:awkward"
+                                                                             }
+                                           }
+                        },
+                        {
+                            "fabric:type":  "fabric:components",
+                            "base":  {
+                                         "item":  "minecraft:potion"
+                                     },
+                            "components":  {
+                                               "minecraft:potion_contents":  {
+                                                                                 "potion":  "minecraft:thick"
+                                                                             }
+                                           }
+                        },
+                        {
+                            "fabric:type":  "fabric:components",
+                            "base":  {
+                                         "item":  "minecraft:potion"
+                                     },
+                            "components":  {
+                                               "minecraft:potion_contents":  {
+                                                                                 "potion":  "minecraft:mundane"
+                                                                             }
+                                           }
+                        },
+                        {
+                            "item":  "minecraft:glowstone_dust"
+                        }
+                    ],
+    "result":  {
+                   "id":  "exposure_camcorder:developed_dynamic_film"
+               }
+}

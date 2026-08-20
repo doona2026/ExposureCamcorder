@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "equipment",
+  "ingredients": [
+    {
+      "item": "exposure_camcorder:dynamic_ultra_hires_bw_film_320"
+    },
+    {
+      "item": "exposure_camcorder:dynamic_ultra_hires_bw_film_160"
+    },
+    {
+      "item": "exposure_camcorder:dynamic_ultra_hires_bw_film_80"
+    },
+    {
+      "item": "minecraft:netherite_ingot"
+    }
+  ],
+  "result": {
+    "id": "exposure_camcorder:dynamic_ultra_hires_bw_film_600"
+  }
+}
