@@ -31,6 +31,7 @@ public class DynamicCaptureSession {
     private State state = State.STARTING;
     private DynamicCaptureSessionEndReason endReason;
     private int pendingFrameIndex = -1;
+    private String pendingFrameUploadId = "";
     private long pendingFrameRequestedAtTick = -1L;
     private int pendingFrameRetryCount;
     private long nextFrameRequestTick;
@@ -109,6 +110,10 @@ public class DynamicCaptureSession {
         return pendingFrameRetryCount;
     }
 
+    public String pendingFrameUploadId() {
+        return pendingFrameUploadId;
+    }
+
     public DynamicCaptureSessionEndReason endReason() {
         return endReason;
     }
@@ -142,6 +147,7 @@ public class DynamicCaptureSession {
         frames.add(frame);
         if (pendingFrameIndex == frames.size() - 1) {
             pendingFrameIndex = -1;
+            pendingFrameUploadId = "";
             pendingFrameRequestedAtTick = -1L;
             pendingFrameRetryCount = 0;
             nextFrameRequestTick = currentTick + captureIntervalTicks;
@@ -175,16 +181,24 @@ public class DynamicCaptureSession {
         return currentTick >= nextFrameRequestTick;
     }
 
-    public void markFrameRequested(long currentTick) {
+    public void markFrameRequested(long currentTick, String uploadId) {
+        if (uploadId == null || uploadId.isBlank()) {
+            throw new IllegalArgumentException("uploadId must not be blank.");
+        }
         pendingFrameIndex = frames.size();
+        pendingFrameUploadId = uploadId;
         pendingFrameRequestedAtTick = currentTick;
         pendingFrameRetryCount = 0;
     }
 
-    public void markPendingFrameRetried(long currentTick) {
+    public void markPendingFrameRetried(long currentTick, String uploadId) {
         if (!hasPendingFrameUpload()) {
             throw new IllegalStateException("No pending frame upload to retry.");
         }
+        if (uploadId == null || uploadId.isBlank()) {
+            throw new IllegalArgumentException("uploadId must not be blank.");
+        }
+        pendingFrameUploadId = uploadId;
         pendingFrameRequestedAtTick = currentTick;
         pendingFrameRetryCount++;
     }

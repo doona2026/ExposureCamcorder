@@ -42,6 +42,8 @@ public class DynamicFrameCaptureClient {
     private static @Nullable DynamicRecordingClientState recordingState;
     private static @Nullable String inFlightSessionId;
     private static int inFlightFrameIndex = -1;
+    private static @Nullable String inFlightExposureId;
+    private static @Nullable DynamicCaptureFrameRequestS2CP queuedFrameRequest;
     private static boolean keyUseWasDown;
     private static boolean freshPressPending;
 
@@ -89,14 +91,25 @@ public class DynamicFrameCaptureClient {
     }
 
     public static void captureFrame(DynamicCaptureFrameRequestS2CP packet) {
-        if (!isCurrentSession(packet.sessionId())
-                || !UPLOAD_QUEUE.acceptFrameRequest(packet.sessionId(), packet.frameIndex())) {
+        if (!isCurrentSession(packet.sessionId())) {
             return;
         }
         if (packet.sessionId().equals(inFlightSessionId) && packet.frameIndex() == inFlightFrameIndex) {
+            if (packet.exposureId().equals(inFlightExposureId)) {
+                return;
+            }
+            if (UPLOAD_QUEUE.acceptFrameRequest(packet.sessionId(), packet.frameIndex(), packet.exposureId())) {
+                queuedFrameRequest = packet;
+            }
             return;
         }
 
+        if (!UPLOAD_QUEUE.acceptFrameRequest(packet.sessionId(), packet.frameIndex(), packet.exposureId())) {
+            return;
+        }
+
+        queuedFrameRequest = null;
+        inFlightExposureId = packet.exposureId();
         inFlightSessionId = packet.sessionId();
         inFlightFrameIndex = packet.frameIndex();
         ExposureClient.cycles().enqueueTask(createCaptureTask(packet));
@@ -114,6 +127,8 @@ public class DynamicFrameCaptureClient {
         recordingState = null;
         inFlightSessionId = null;
         inFlightFrameIndex = -1;
+        inFlightExposureId = null;
+        queuedFrameRequest = null;
         freshPressPending = false;
         UPLOAD_QUEUE.clear();
     }
@@ -127,7 +142,7 @@ public class DynamicFrameCaptureClient {
         if (params.exposureId().isEmpty()) {
             LOGGER.error("Failed to capture frame {} of session '{}': exposure id is empty.",
                     packet.frameIndex(), packet.sessionId());
-            clearInFlight(packet.sessionId(), packet.frameIndex());
+            clearInFlight(packet.sessionId(), packet.frameIndex(), packet.exposureId());
             return new EmptyTask<>();
         }
 
@@ -135,7 +150,7 @@ public class DynamicFrameCaptureClient {
         if (entity == null) {
             LOGGER.error("Failed to capture frame {} of session '{}': camera holder cannot be obtained.",
                     packet.frameIndex(), packet.sessionId());
-            clearInFlight(packet.sessionId(), packet.frameIndex());
+            clearInFlight(packet.sessionId(), packet.frameIndex(), packet.exposureId());
             return new EmptyTask<>();
         }
 
@@ -168,11 +183,11 @@ public class DynamicFrameCaptureClient {
 
         return captureTask
                 .acceptAsync(exposureData -> {
-                    clearInFlight(packet.sessionId(), packet.frameIndex());
+                    clearInFlight(packet.sessionId(), packet.frameIndex(), packet.exposureId());
                     UPLOAD_QUEUE.submitFrameData(packet.sessionId(), packet.frameIndex(), packet.exposureId(),
                             exposureData);
                 })
-                .onError(error -> clearInFlight(packet.sessionId(), packet.frameIndex()));
+                .onError(error -> clearInFlight(packet.sessionId(), packet.frameIndex(), packet.exposureId()));
     }
 
     private static Task<Result<Image>> createScreenshotTask() {
@@ -186,11 +201,28 @@ public class DynamicFrameCaptureClient {
         return PlatformHelper.isModLoaded("iris") || PlatformHelper.isModLoaded("oculus");
     }
 
-    private static void clearInFlight(String sessionId, int frameIndex) {
-        if (sessionId.equals(inFlightSessionId) && frameIndex == inFlightFrameIndex) {
+    private static void clearInFlight(String sessionId, int frameIndex, String exposureId) {
+        if (sessionId.equals(inFlightSessionId)
+                && frameIndex == inFlightFrameIndex
+                && exposureId.equals(inFlightExposureId)) {
             inFlightSessionId = null;
             inFlightFrameIndex = -1;
+            inFlightExposureId = null;
+            drainQueuedFrameRequest();
         }
+    }
+
+    private static void drainQueuedFrameRequest() {
+        DynamicCaptureFrameRequestS2CP queuedRequest = queuedFrameRequest;
+        queuedFrameRequest = null;
+        if (queuedRequest == null || !isCurrentSession(queuedRequest.sessionId())) {
+            return;
+        }
+
+        inFlightExposureId = queuedRequest.exposureId();
+        inFlightSessionId = queuedRequest.sessionId();
+        inFlightFrameIndex = queuedRequest.frameIndex();
+        ExposureClient.cycles().enqueueTask(createCaptureTask(queuedRequest));
     }
 
     private static boolean isCurrentSession(String sessionId) {

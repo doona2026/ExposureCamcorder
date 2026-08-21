@@ -24,6 +24,7 @@ public class DynamicFrameUploadQueue {
     private @Nullable String activeSessionId;
     private int acknowledgedFrameCount;
     private int latestRequestedFrameIndex = -1;
+    private @Nullable String latestRequestedExposureId;
     private boolean stopRequested;
 
     public DynamicFrameUploadQueue() {
@@ -41,6 +42,7 @@ public class DynamicFrameUploadQueue {
         activeSessionId = sessionId;
         acknowledgedFrameCount = 0;
         latestRequestedFrameIndex = -1;
+        latestRequestedExposureId = null;
         stopRequested = false;
     }
 
@@ -50,18 +52,23 @@ public class DynamicFrameUploadQueue {
         }
     }
 
-    public boolean acceptFrameRequest(String sessionId, int frameIndex) {
+    public boolean acceptFrameRequest(String sessionId, int frameIndex, String exposureId) {
         if (!matchesSession(sessionId)
+                || exposureId == null
+                || exposureId.isBlank()
                 || frameIndex < acknowledgedFrameCount
-                || frameIndex < latestRequestedFrameIndex) {
+                || frameIndex < latestRequestedFrameIndex
+                || (frameIndex == latestRequestedFrameIndex && exposureId.equals(latestRequestedExposureId))) {
             return false;
         }
 
-        if (stopRequested && frameIndex != latestRequestedFrameIndex) {
+        if (stopRequested && (frameIndex != latestRequestedFrameIndex
+                || !exposureId.equals(latestRequestedExposureId))) {
             return false;
         }
 
         latestRequestedFrameIndex = frameIndex;
+        latestRequestedExposureId = exposureId;
         return true;
     }
 
@@ -73,7 +80,9 @@ public class DynamicFrameUploadQueue {
 
         if (frameIndex < acknowledgedFrameCount
                 || frameIndex < latestRequestedFrameIndex
-                || (stopRequested && frameIndex != latestRequestedFrameIndex)) {
+                || (frameIndex == latestRequestedFrameIndex && !exposureId.equals(latestRequestedExposureId))
+                || (stopRequested && (frameIndex != latestRequestedFrameIndex
+                || !exposureId.equals(latestRequestedExposureId)))) {
             return false;
         }
 
@@ -112,6 +121,7 @@ public class DynamicFrameUploadQueue {
         activeSessionId = null;
         acknowledgedFrameCount = 0;
         latestRequestedFrameIndex = -1;
+        latestRequestedExposureId = null;
         stopRequested = false;
     }
 }

@@ -42,7 +42,7 @@ class DynamicCaptureTickerTest {
 
         assertTrue(ticker.tickSession(session, 0L).shouldRequestFrame());
 
-        session.markFrameRequested(0L);
+        session.markFrameRequested(0L, "frame-0");
         assertFalse(ticker.tickSession(session, 2L).shouldRequestFrame());
 
         session.appendFrame(Frame.EMPTY, 2L);
@@ -56,13 +56,13 @@ class DynamicCaptureTickerTest {
         DynamicCaptureTicker ticker = new DynamicCaptureTicker(1);
 
         ticker.tickSession(session, 0L);
-        session.markFrameRequested(0L);
+        session.markFrameRequested(0L, "frame-0");
 
         DynamicCaptureTicker.TickResult retryTick = ticker.tickSession(session, 5L);
         assertTrue(retryTick.shouldRetryPendingFrame());
         assertFalse(retryTick.hasCompletedSession());
 
-        session.markPendingFrameRetried(5L);
+        session.markPendingFrameRetried(5L, "frame-0-retry-1");
         DynamicCaptureTicker.TickResult stopTick = ticker.tickSession(session, 10L);
         assertFalse(stopTick.shouldRetryPendingFrame());
         assertTrue(session.isStopping());
@@ -78,7 +78,7 @@ class DynamicCaptureTickerTest {
         DynamicCaptureTicker ticker = new DynamicCaptureTicker();
 
         ticker.tickSession(session, 0L);
-        session.markFrameRequested(0L);
+        session.markFrameRequested(0L, "frame-0");
 
         DynamicCaptureTicker.TickResult result = ticker.tickSession(session, 1200L);
         assertFalse(result.shouldRetryPendingFrame());
@@ -108,7 +108,7 @@ class DynamicCaptureTickerTest {
         DynamicCaptureTicker ticker = new DynamicCaptureTicker();
 
         ticker.tickSession(session, 0L);
-        session.markFrameRequested(0L);
+        session.markFrameRequested(0L, "frame-0");
         session.requestStop(DynamicCaptureSessionEndReason.RELEASED);
 
         DynamicCaptureTicker.TickResult waitingTick = ticker.tickSession(session, 1L);
@@ -127,11 +127,11 @@ class DynamicCaptureTickerTest {
         DynamicCaptureTicker ticker = new DynamicCaptureTicker();
 
         assertTrue(ticker.tickSession(session, 0L).shouldRequestFrame());
-        session.markFrameRequested(0L);
+        session.markFrameRequested(0L, "frame-0");
         session.appendFrame(Frame.EMPTY, 2L);
 
         assertTrue(ticker.tickSession(session, 4L).shouldRequestFrame());
-        session.markFrameRequested(4L);
+        session.markFrameRequested(4L, "frame-1");
         session.appendFrame(Frame.EMPTY, 6L);
 
         DynamicCaptureTicker.TickResult exhaustedTick = ticker.tickSession(session, 7L);

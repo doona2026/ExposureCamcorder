@@ -29,7 +29,7 @@ import java.util.UUID;
 
 public class DynamicRecordingTrigger {
     private static final int BASE_PENDING_FRAME_TIMEOUT_TICKS = 200;
-    private static final int MAX_PENDING_FRAME_TIMEOUT_TICKS = ExposureAccess.maxSafePendingFrameTimeoutTicks();
+    private static final int MAX_PENDING_FRAME_TIMEOUT_TICKS = 20 * 180;
 
     private final DynamicCameraModeController modeController = new DynamicCameraModeController();
 
@@ -123,8 +123,9 @@ public class DynamicRecordingTrigger {
 
     private void requestNextFrame(ServerPlayer player, ItemStack cameraStack, DynamicCaptureSession session) {
         int frameIndex = session.frameCount();
-        session.markFrameRequested(player.level().getGameTime());
-        sendFrameRequest(player, cameraStack, session, frameIndex);
+        String exposureId = ExposureAccess.createExposureId(session.sessionId(), frameIndex, 0);
+        session.markFrameRequested(player.level().getGameTime(), exposureId);
+        sendFrameRequest(player, cameraStack, session, frameIndex, exposureId);
     }
 
     private void retryPendingFrame(ServerPlayer player, ItemStack cameraStack, DynamicCaptureSession session) {
@@ -133,14 +134,14 @@ public class DynamicRecordingTrigger {
             return;
         }
 
-        session.markPendingFrameRetried(player.level().getGameTime());
-        sendFrameRequest(player, cameraStack, session, frameIndex);
+        String exposureId = ExposureAccess.createExposureId(session.sessionId(), frameIndex,
+                session.pendingFrameRetryCount() + 1);
+        session.markPendingFrameRetried(player.level().getGameTime(), exposureId);
+        sendFrameRequest(player, cameraStack, session, frameIndex, exposureId);
     }
 
     private void sendFrameRequest(ServerPlayer player, ItemStack cameraStack, DynamicCaptureSession session,
-                                  int frameIndex) {
-        String exposureId = ExposureAccess.createExposureId(session.sessionId(), frameIndex);
-        ExposureAccess.expectFrameUpload(player, exposureId);
+                                  int frameIndex, String exposureId) {
         Packets.sendToClient(new DynamicCaptureFrameRequestS2CP(session.sessionId(), frameIndex, exposureId,
                 createCaptureParameters(player, cameraStack, exposureId)), player);
     }

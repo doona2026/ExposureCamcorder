@@ -7,30 +7,11 @@ import io.github.mortuusars.exposure.ExposureServer;
 import io.github.mortuusars.exposure.world.camera.frame.Frame;
 import io.github.mortuusars.exposure.world.level.storage.ExposureData;
 import io.github.mortuusars.exposure.world.level.storage.ExposureIdentifier;
-import io.github.mortuusars.exposure.world.level.storage.ExposureRepository;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.util.Optional;
 
 public class ExposureAccess {
-    private static final int FRAME_UPLOAD_TIMEOUT_SAFETY_MARGIN_SECONDS = 5;
-    private static final int EXPECTED_FRAME_UPLOAD_TIMEOUT_TICKS =
-            ExposureRepository.EXPECTED_TIMEOUT_SECONDS * 20;
-    private static final int MAX_SAFE_PENDING_FRAME_TIMEOUT_TICKS = Math.max(20,
-            EXPECTED_FRAME_UPLOAD_TIMEOUT_TICKS - FRAME_UPLOAD_TIMEOUT_SAFETY_MARGIN_SECONDS * 20);
-
-    public static void expectFrameUpload(ServerPlayer player, String exposureId) {
-        ExposureServer.exposureRepository().expect(player, exposureId);
-    }
-
-    public static int expectedFrameUploadTimeoutTicks() {
-        return EXPECTED_FRAME_UPLOAD_TIMEOUT_TICKS;
-    }
-
-    public static int maxSafePendingFrameTimeoutTicks() {
-        return MAX_SAFE_PENDING_FRAME_TIMEOUT_TICKS;
-    }
-
     public static boolean receiveFrameData(ServerPlayer player, String sessionId, int frameIndex, String exposureId,
                                            ExposureData exposureData) {
         Optional<DynamicCaptureSession> sessionOpt = ExposureCamcorder.captureSessionManager().getActiveSession(player.getUUID());
@@ -53,7 +34,7 @@ public class ExposureAccess {
             return false;
         }
 
-        String expectedExposureId = createExposureId(sessionId, frameIndex);
+        String expectedExposureId = session.pendingFrameUploadId();
         if (!expectedExposureId.equals(exposureId)) {
             ExposureCamcorder.LOGGER.warn(
                     "Discarding dynamic frame {} for session '{}' with mismatched exposure id '{}'. Expected '{}'.",
@@ -61,7 +42,7 @@ public class ExposureAccess {
             return false;
         }
 
-        if (!storeExposure(player, expectedExposureId, exposureData)) {
+        if (!storeExposure(expectedExposureId, exposureData)) {
             return false;
         }
 
@@ -92,15 +73,24 @@ public class ExposureAccess {
     }
 
     public static String createExposureId(String sessionId, int frameIndex) {
-        return ExposureIdentifier.createId(sessionId, "dynamic", Integer.toString(frameIndex));
+        return createExposureId(sessionId, frameIndex, 0);
+    }
+
+    public static String createExposureId(String sessionId, int frameIndex, int attempt) {
+        if (attempt <= 0) {
+            return ExposureIdentifier.createId(sessionId, "dynamic", Integer.toString(frameIndex));
+        }
+
+        return ExposureIdentifier.createId(sessionId, "dynamic", Integer.toString(frameIndex),
+                "retry", Integer.toString(attempt));
     }
 
     public static Optional<ExposureData> loadExposure(String exposureId) {
         return ExposureServer.exposureRepository().load(exposureId).getData();
     }
 
-    private static boolean storeExposure(ServerPlayer player, String exposureId, ExposureData exposureData) {
-        ExposureServer.exposureRepository().receiveClientUpload(player, exposureId, exposureData);
+    private static boolean storeExposure(String exposureId, ExposureData exposureData) {
+        ExposureServer.exposureRepository().save(exposureId, exposureData);
         return loadExposure(exposureId).isPresent();
     }
 }
