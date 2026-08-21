@@ -1,0 +1,95 @@
+﻿{
+    "fabric:load_conditions":  [
+                                   {
+                                       "condition":  "fabric:all_mods_loaded",
+                                       "values":  [
+                                                      "create"
+                                                  ]
+                                   }
+                               ],
+    "type":  "create:sequenced_assembly",
+    "ingredient":  {
+                       "item":  "exposure_camcorder:dynamic_film_10s"
+                   },
+    "loops":  1,
+    "results":  [
+                    {
+                        "item":  "exposure_camcorder:developed_dynamic_film"
+                    }
+                ],
+    "sequence":  [
+                     {
+                         "type":  "create:filling",
+                         "ingredients":  [
+                                             {
+                                                 "item":  "exposure_camcorder:dynamic_film_10s"
+                                             },
+                                             {
+                                                 "fluid":  "create:potion",
+                                                 "amount":  250,
+                                                 "nbt":  "{Potion:\"minecraft:awkward\"}"
+                                             }
+                                         ],
+                         "results":  [
+                                         {
+                                             "item":  "exposure_camcorder:dynamic_film_10s"
+                                         }
+                                     ]
+                     },
+                     {
+                         "type":  "create:filling",
+                         "ingredients":  [
+                                             {
+                                                 "item":  "exposure_camcorder:dynamic_film_10s"
+                                             },
+                                             {
+                                                 "fluid":  "create:potion",
+                                                 "amount":  250,
+                                                 "nbt":  "{Potion:\"minecraft:thick\"}"
+                                             }
+                                         ],
+                         "results":  [
+                                         {
+                                             "item":  "exposure_camcorder:dynamic_film_10s"
+                                         }
+                                     ]
+                     },
+                     {
+                         "type":  "create:filling",
+                         "ingredients":  [
+                                             {
+                                                 "item":  "exposure_camcorder:dynamic_film_10s"
+                                             },
+                                             {
+                                                 "fluid":  "create:potion",
+                                                 "amount":  250,
+                                                 "nbt":  "{Potion:\"minecraft:mundane\"}"
+                                             }
+                                         ],
+                         "results":  [
+                                         {
+                                             "item":  "exposure_camcorder:dynamic_film_10s"
+                                         }
+                                     ]
+                     },
+                     {
+                         "type":  "create:deploying",
+                         "ingredients":  [
+                                             {
+                                                 "item":  "exposure_camcorder:dynamic_film_10s"
+                                             },
+                                             {
+                                                 "item":  "minecraft:glowstone_dust"
+                                             }
+                                         ],
+                         "results":  [
+                                         {
+                                             "item":  "exposure_camcorder:dynamic_film_10s"
+                                         }
+                                     ]
+                     }
+                 ],
+    "transitionalItem":  {
+                             "item":  "exposure_camcorder:dynamic_film_10s"
+                         }
+}
