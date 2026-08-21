@@ -2,8 +2,8 @@ package io.github.exposure_camcorder.fabric.network;
 
 import io.github.exposure_camcorder.network.packet.c2s.DynamicCameraModeToggleC2SP;
 import io.github.exposure_camcorder.network.packet.c2s.DynamicCaptureFrameDataC2SP;
-import io.github.exposure_camcorder.network.packet.c2s.DynamicCaptureHeartbeatC2SP;
 import io.github.exposure_camcorder.network.packet.c2s.DynamicCaptureStopC2SP;
+import io.github.exposure_camcorder.network.packet.s2c.DynamicCaptureFrameRequestS2CP;
 import io.github.exposure_camcorder.network.packet.s2c.DynamicCaptureStartS2CP;
 import io.github.exposure_camcorder.network.packet.s2c.DynamicCaptureStateS2CP;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -23,12 +23,12 @@ public final class FabricPackets {
     public static void registerReceivers() {
         ServerPlayNetworking.registerGlobalReceiver(DynamicCameraModeToggleC2SP.ID, FabricPackets::handleServerboundToggle);
         ServerPlayNetworking.registerGlobalReceiver(DynamicCaptureFrameDataC2SP.ID, FabricPackets::handleServerboundFrameData);
-        ServerPlayNetworking.registerGlobalReceiver(DynamicCaptureHeartbeatC2SP.ID, FabricPackets::handleServerboundHeartbeat);
         ServerPlayNetworking.registerGlobalReceiver(DynamicCaptureStopC2SP.ID, FabricPackets::handleServerboundStop);
     }
 
     public static void registerClientReceivers() {
         ClientPlayNetworking.registerGlobalReceiver(DynamicCaptureStartS2CP.ID, FabricPackets::handleClientboundStart);
+        ClientPlayNetworking.registerGlobalReceiver(DynamicCaptureFrameRequestS2CP.ID, FabricPackets::handleClientboundFrameRequest);
         ClientPlayNetworking.registerGlobalReceiver(DynamicCaptureStateS2CP.ID, FabricPackets::handleClientboundState);
     }
 
@@ -53,16 +53,15 @@ public final class FabricPackets {
         server.execute(() -> packet.handle(PacketFlow.SERVERBOUND, player));
     }
 
-    private static void handleServerboundHeartbeat(MinecraftServer server, ServerPlayer player,
-                                                   ServerGamePacketListenerImpl handler,
-                                                   FriendlyByteBuf buf, net.fabricmc.fabric.api.networking.v1.PacketSender responseSender) {
-        DynamicCaptureHeartbeatC2SP packet = DynamicCaptureHeartbeatC2SP.read(buf);
-        server.execute(() -> packet.handle(PacketFlow.SERVERBOUND, player));
-    }
-
     private static void handleClientboundStart(Minecraft client, ClientPacketListener handler,
                                                 FriendlyByteBuf buf, net.fabricmc.fabric.api.networking.v1.PacketSender responseSender) {
         DynamicCaptureStartS2CP packet = DynamicCaptureStartS2CP.read(buf);
+        client.execute(() -> packet.handle(PacketFlow.CLIENTBOUND, client.player));
+    }
+
+    private static void handleClientboundFrameRequest(Minecraft client, ClientPacketListener handler,
+                                                      FriendlyByteBuf buf, net.fabricmc.fabric.api.networking.v1.PacketSender responseSender) {
+        DynamicCaptureFrameRequestS2CP packet = DynamicCaptureFrameRequestS2CP.read(buf);
         client.execute(() -> packet.handle(PacketFlow.CLIENTBOUND, client.player));
     }
 

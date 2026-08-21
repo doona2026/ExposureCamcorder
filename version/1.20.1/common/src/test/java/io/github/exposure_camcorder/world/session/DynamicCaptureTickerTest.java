@@ -13,23 +13,75 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DynamicCaptureTickerTest {
     private static DynamicCaptureSession session(int startTick, int interval, int maxFrames, int maxDurationTicks) {
-        return new DynamicCaptureSession("session-a", UUID.randomUUID(), startTick, interval, maxFrames, maxDurationTicks);
+        return new DynamicCaptureSession("session-a", UUID.randomUUID(), startTick, interval, maxFrames,
+                maxDurationTicks);
     }
 
     private static DynamicCaptureSession session(int startTick, int interval, int maxFrames, int maxDurationTicks,
-                                                 int stallTimeoutTicks) {
+                                                 int pendingFrameTimeoutTicks) {
         return new DynamicCaptureSession("session-a", UUID.randomUUID(), startTick, interval, maxFrames,
-                maxDurationTicks, stallTimeoutTicks);
+                maxDurationTicks, pendingFrameTimeoutTicks);
     }
 
     @Test
-    void startingSessionBeginsRecordingOnFirstTick() {
+    void startingSessionBeginsRecordingAndRequestsFirstFrame() {
         DynamicCaptureSession session = session(0, 2, 40, 160);
         DynamicCaptureTicker ticker = new DynamicCaptureTicker();
 
         DynamicCaptureTicker.TickResult result = ticker.tickSession(session, 0L);
 
         assertNull(result.completedSession());
+        assertTrue(session.isRecording());
+        assertTrue(result.shouldRequestFrame());
+    }
+
+    @Test
+    void pendingFrameBlocksDuplicateCaptureRequestsUntilUploadArrives() {
+        DynamicCaptureSession session = session(0, 2, 3, 160);
+        DynamicCaptureTicker ticker = new DynamicCaptureTicker();
+
+        assertTrue(ticker.tickSession(session, 0L).shouldRequestFrame());
+
+        session.markFrameRequested(0L);
+        assertFalse(ticker.tickSession(session, 2L).shouldRequestFrame());
+
+        session.appendFrame(Frame.EMPTY);
+        assertTrue(ticker.tickSession(session, 2L).shouldRequestFrame());
+    }
+
+    @Test
+    void timedOutPendingFrameRequestsAreRetriedBeforeSessionStops() {
+        DynamicCaptureSession session = session(0, 2, 40, 160, 5);
+        DynamicCaptureTicker ticker = new DynamicCaptureTicker(1);
+
+        ticker.tickSession(session, 0L);
+        session.markFrameRequested(0L);
+
+        DynamicCaptureTicker.TickResult retryTick = ticker.tickSession(session, 5L);
+        assertTrue(retryTick.shouldRetryPendingFrame());
+        assertFalse(retryTick.hasCompletedSession());
+
+        session.markPendingFrameRetried(5L);
+        DynamicCaptureTicker.TickResult stopTick = ticker.tickSession(session, 10L);
+        assertFalse(stopTick.shouldRetryPendingFrame());
+        assertTrue(session.isStopping());
+
+        DynamicCaptureTicker.TickResult finishTick = ticker.tickSession(session, 11L);
+        assertNotNull(finishTick.completedSession());
+        assertEquals(DynamicCaptureSessionEndReason.INTERRUPTED, finishTick.completedSession().endReason());
+    }
+
+    @Test
+    void highResolutionPendingTimeoutSurvivesLongTickWithoutRetry() {
+        DynamicCaptureSession session = session(0, 2, 600, 10000, 1800);
+        DynamicCaptureTicker ticker = new DynamicCaptureTicker();
+
+        ticker.tickSession(session, 0L);
+        session.markFrameRequested(0L);
+
+        DynamicCaptureTicker.TickResult result = ticker.tickSession(session, 1200L);
+        assertFalse(result.shouldRetryPendingFrame());
+        assertFalse(result.hasCompletedSession());
         assertTrue(session.isRecording());
     }
 
@@ -39,143 +91,56 @@ class DynamicCaptureTickerTest {
         DynamicCaptureTicker ticker = new DynamicCaptureTicker();
 
         ticker.tickSession(session, 100L);
-        DynamicCaptureTicker.TickResult timeoutTick = ticker.tickSession(session, 200L);
+        DynamicCaptureTicker.TickResult timeoutTick = ticker.tickSession(session, 180L);
 
-        assertNull(timeoutTick.completedSession());
+        assertFalse(timeoutTick.hasCompletedSession());
         assertTrue(session.isStopping());
 
-        DynamicCaptureTicker.TickResult finishTick = ticker.tickSession(session, 299L);
-        assertNull(finishTick.completedSession());
-
-        finishTick = ticker.tickSession(session, 300L);
+        DynamicCaptureTicker.TickResult finishTick = ticker.tickSession(session, 181L);
         assertNotNull(finishTick.completedSession());
         assertEquals(DynamicCaptureSessionEndReason.TIME_LIMIT, finishTick.completedSession().endReason());
     }
 
     @Test
-    void filmExhaustionAutomaticallyStopsAndOneFrameStillSucceeds() {
-        DynamicCaptureSession session = session(0, 2, 2, 1000);
+    void stoppingWaitsForPendingFrameUploadAndIncludesIt() {
+        DynamicCaptureSession session = session(0, 2, 40, 160);
         DynamicCaptureTicker ticker = new DynamicCaptureTicker();
 
         ticker.tickSession(session, 0L);
+        session.markFrameRequested(0L);
+        session.requestStop(DynamicCaptureSessionEndReason.RELEASED);
+
+        DynamicCaptureTicker.TickResult waitingTick = ticker.tickSession(session, 1L);
+        assertFalse(waitingTick.hasCompletedSession());
+
         session.appendFrame(Frame.EMPTY);
+        DynamicCaptureTicker.TickResult finishTick = ticker.tickSession(session, 2L);
+        assertNotNull(finishTick.completedSession());
+        assertEquals(1, finishTick.completedSession().frameCount());
+        assertEquals(DynamicCaptureSessionEndReason.RELEASED, finishTick.completedSession().endReason());
+    }
+
+    @Test
+    void filmExhaustionFinalizesAsCompletedPhotograph() {
+        DynamicCaptureSession session = session(0, 2, 2, 1000);
+        DynamicCaptureTicker ticker = new DynamicCaptureTicker();
+
+        assertTrue(ticker.tickSession(session, 0L).shouldRequestFrame());
+        session.markFrameRequested(0L);
         session.appendFrame(Frame.EMPTY);
-        session.markFrameReceived(2L);
+
+        assertTrue(ticker.tickSession(session, 2L).shouldRequestFrame());
+        session.markFrameRequested(2L);
+        session.appendFrame(Frame.EMPTY);
 
         DynamicCaptureTicker.TickResult exhaustedTick = ticker.tickSession(session, 3L);
-        assertNull(exhaustedTick.completedSession());
+        assertFalse(exhaustedTick.hasCompletedSession());
         assertTrue(session.isStopping());
 
-        DynamicCaptureTicker.TickResult finishTick = ticker.tickSession(session, 104L);
+        DynamicCaptureTicker.TickResult finishTick = ticker.tickSession(session, 4L);
         assertNotNull(finishTick.completedSession());
         assertEquals(DynamicCaptureSessionEndReason.FILM_EXHAUSTED, finishTick.completedSession().endReason());
         assertTrue(finishTick.completedSession().shouldCreatePhotograph());
         assertEquals(2, finishTick.completedSession().frameCount());
-    }
-
-    @Test
-    void stalledSessionIsInterruptedWhenNoFramesArrive() {
-        DynamicCaptureSession session = session(0, 2, 40, 10000, 200);
-        DynamicCaptureTicker ticker = new DynamicCaptureTicker(100);
-
-        ticker.tickSession(session, 0L);
-
-        DynamicCaptureTicker.TickResult beforeStall = ticker.tickSession(session, 199L);
-        assertNull(beforeStall.completedSession());
-        assertTrue(session.isRecording());
-
-        DynamicCaptureTicker.TickResult stalledTick = ticker.tickSession(session, 200L);
-        assertNull(stalledTick.completedSession());
-        assertTrue(session.isStopping());
-
-        DynamicCaptureTicker.TickResult finishTick = ticker.tickSession(session, 301L);
-        assertNotNull(finishTick.completedSession());
-        assertEquals(DynamicCaptureSessionEndReason.INTERRUPTED, finishTick.completedSession().endReason());
-    }
-
-    @Test
-    void framesReceivedResetTheStallTimer() {
-        DynamicCaptureSession session = session(0, 2, 40, 10000, 200);
-        DynamicCaptureTicker ticker = new DynamicCaptureTicker(100);
-
-        ticker.tickSession(session, 0L);
-        session.markFrameReceived(150L);
-
-        DynamicCaptureTicker.TickResult result = ticker.tickSession(session, 199L);
-        assertNull(result.completedSession());
-        assertTrue(session.isRecording());
-    }
-
-    @Test
-    void clientActivityResetsTheStallTimerWhileHighResolutionFrameIsProcessing() {
-        DynamicCaptureSession session = session(0, 2, 600, 10000, 200);
-        DynamicCaptureTicker ticker = new DynamicCaptureTicker(100);
-
-        ticker.tickSession(session, 0L);
-        session.markClientActivity(350L);
-
-        DynamicCaptureTicker.TickResult beforeStall = ticker.tickSession(session, 549L);
-        assertNull(beforeStall.completedSession());
-        assertTrue(session.isRecording());
-
-        DynamicCaptureTicker.TickResult stalledTick = ticker.tickSession(session, 550L);
-        assertNull(stalledTick.completedSession());
-        assertTrue(session.isStopping());
-    }
-
-    @Test
-    void largerPerSessionStallTimeoutAllowsHighResolutionCaptureToSurviveLongTicks() {
-        DynamicCaptureSession session = session(0, 2, 600, 10000, 1800);
-        DynamicCaptureTicker ticker = new DynamicCaptureTicker(100);
-
-        ticker.tickSession(session, 0L);
-        session.markClientActivity(350L);
-
-        DynamicCaptureTicker.TickResult result = ticker.tickSession(session, 1200L);
-        assertNull(result.completedSession());
-        assertTrue(session.isRecording());
-
-        DynamicCaptureTicker.TickResult stalledTick = ticker.tickSession(session, 2150L);
-        assertNull(stalledTick.completedSession());
-        assertTrue(session.isStopping());
-    }
-
-    @Test
-    void framesArrivingDuringGraceAreIncludedInThePartialRecording() {
-        DynamicCaptureSession session = session(0, 2, 40, 1000);
-        DynamicCaptureTicker ticker = new DynamicCaptureTicker();
-
-        ticker.tickSession(session, 0L);
-        session.requestStop(DynamicCaptureSessionEndReason.RELEASED);
-
-        DynamicCaptureTicker.TickResult waitingTick = ticker.tickSession(session, 1L);
-        assertNull(waitingTick.completedSession());
-
-        session.appendFrame(Frame.EMPTY);
-        session.markFrameReceived(5L);
-
-        DynamicCaptureTicker.TickResult finishTick = ticker.tickSession(session, 101L);
-        assertNotNull(finishTick.completedSession());
-        assertEquals(DynamicCaptureSessionEndReason.RELEASED, finishTick.completedSession().endReason());
-        assertEquals(1, finishTick.completedSession().frameCount());
-        assertFalse(finishTick.completedSession().shouldCreatePhotograph());
-    }
-
-    @Test
-    void zeroFrameSessionFinishesAsFailure() {
-        DynamicCaptureSession session = session(0, 2, 40, 1000);
-        DynamicCaptureTicker ticker = new DynamicCaptureTicker();
-
-        ticker.tickSession(session, 0L);
-        session.requestStop(DynamicCaptureSessionEndReason.RELEASED);
-
-        DynamicCaptureTicker.TickResult finishTick = ticker.tickSession(session, 100L);
-        assertNull(finishTick.completedSession());
-
-        finishTick = ticker.tickSession(session, 200L);
-        assertNotNull(finishTick.completedSession());
-        assertEquals(DynamicCaptureSessionEndReason.RELEASED, finishTick.completedSession().endReason());
-        assertFalse(finishTick.completedSession().shouldCreatePhotograph());
-        assertEquals(0, finishTick.completedSession().frameCount());
     }
 }

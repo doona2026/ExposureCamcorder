@@ -4,7 +4,6 @@ import io.github.exposure_camcorder.ExposureCamcorder;
 import io.github.exposure_camcorder.client.capture.DynamicFrameCaptureClient;
 import io.github.exposure_camcorder.network.packet.HandledPayload;
 import io.github.mortuusars.exposure.network.packet.Packet;
-import io.github.mortuusars.exposure.world.camera.capture.CaptureParameters;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
@@ -15,7 +14,7 @@ import net.minecraft.world.entity.player.Player;
 import org.jetbrains.annotations.NotNull;
 
 public record DynamicCaptureStartS2CP(String sessionId, int captureIntervalTicks, int maxFrames,
-                                      int maxRecordingDurationTicks, CaptureParameters captureParameters)
+                                      int maxRecordingDurationTicks)
         implements Packet, HandledPayload, CustomPacketPayload {
     public static final ResourceLocation ID = ExposureCamcorder.resource("dynamic_capture_start");
     public static final Type<DynamicCaptureStartS2CP> TYPE = new Type<>(ID);
@@ -25,7 +24,6 @@ public record DynamicCaptureStartS2CP(String sessionId, int captureIntervalTicks
             ByteBufCodecs.VAR_INT, DynamicCaptureStartS2CP::captureIntervalTicks,
             ByteBufCodecs.VAR_INT, DynamicCaptureStartS2CP::maxFrames,
             ByteBufCodecs.VAR_INT, DynamicCaptureStartS2CP::maxRecordingDurationTicks,
-            CaptureParameters.STREAM_CODEC, DynamicCaptureStartS2CP::captureParameters,
             DynamicCaptureStartS2CP::new
     );
 

@@ -11,7 +11,7 @@ class DynamicRecordingStatusOverlayTest {
 
     @Test
     void derivesProgressFromClientState() {
-        DynamicRecordingClientState state = new DynamicRecordingClientState("session", 3, 12, 9);
+        DynamicRecordingClientState state = new DynamicRecordingClientState("session", 3, 12, 9, 120);
 
         assertTrue(overlay.shouldRender(state));
         assertEquals(9, overlay.remainingCapacity(state));

@@ -4,8 +4,8 @@ import io.github.exposure_camcorder.ExposureCamcorder;
 import io.github.exposure_camcorder.network.packet.HandledPayload;
 import io.github.exposure_camcorder.network.packet.c2s.DynamicCameraModeToggleC2SP;
 import io.github.exposure_camcorder.network.packet.c2s.DynamicCaptureFrameDataC2SP;
-import io.github.exposure_camcorder.network.packet.c2s.DynamicCaptureHeartbeatC2SP;
 import io.github.exposure_camcorder.network.packet.c2s.DynamicCaptureStopC2SP;
+import io.github.exposure_camcorder.network.packet.s2c.DynamicCaptureFrameRequestS2CP;
 import io.github.exposure_camcorder.network.packet.s2c.DynamicCaptureStartS2CP;
 import io.github.exposure_camcorder.network.packet.s2c.DynamicCaptureStateS2CP;
 import net.minecraft.client.Minecraft;
@@ -40,10 +40,10 @@ public final class NeoForgePackets {
 
         int index = 0;
         registerClientbound(index++, DynamicCaptureStartS2CP.class, DynamicCaptureStartS2CP::read);
+        registerClientbound(index++, DynamicCaptureFrameRequestS2CP.class, DynamicCaptureFrameRequestS2CP::read);
         registerClientbound(index++, DynamicCaptureStateS2CP.class, DynamicCaptureStateS2CP::read);
         registerServerbound(index++, DynamicCameraModeToggleC2SP.class, DynamicCameraModeToggleC2SP::read);
         registerServerbound(index++, DynamicCaptureFrameDataC2SP.class, DynamicCaptureFrameDataC2SP::read);
-        registerServerbound(index++, DynamicCaptureHeartbeatC2SP.class, DynamicCaptureHeartbeatC2SP::read);
         registerServerbound(index++, DynamicCaptureStopC2SP.class, DynamicCaptureStopC2SP::read);
     }
 

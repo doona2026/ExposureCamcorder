@@ -1,21 +1,21 @@
 package io.github.exposure_camcorder.world.session;
 
 public class DynamicCaptureTicker {
-    private final int stoppingGraceTicks;
+    private final int maxPendingFrameRetries;
 
     public DynamicCaptureTicker() {
-        this(100);
+        this(4);
     }
 
-    public DynamicCaptureTicker(int stoppingGraceTicks) {
-        if (stoppingGraceTicks < 0) {
-            throw new IllegalArgumentException("stoppingGraceTicks cannot be negative.");
+    public DynamicCaptureTicker(int maxPendingFrameRetries) {
+        if (maxPendingFrameRetries < 0) {
+            throw new IllegalArgumentException("maxPendingFrameRetries cannot be negative.");
         }
-
-        this.stoppingGraceTicks = stoppingGraceTicks;
+        this.maxPendingFrameRetries = maxPendingFrameRetries;
     }
 
-    public record TickResult(DynamicCaptureSessionResult completedSession) {
+    public record TickResult(boolean shouldRequestFrame, boolean shouldRetryPendingFrame,
+                             DynamicCaptureSessionResult completedSession) {
         public boolean hasCompletedSession() {
             return completedSession != null;
         }
@@ -23,7 +23,7 @@ public class DynamicCaptureTicker {
 
     public TickResult tickSession(DynamicCaptureSession session, long currentTick) {
         if (session.state() == DynamicCaptureSession.State.FINISHED) {
-            return new TickResult(null);
+            return new TickResult(false, false, null);
         }
 
         if (session.state() == DynamicCaptureSession.State.STARTING) {
@@ -31,19 +31,38 @@ public class DynamicCaptureTicker {
         }
 
         if (session.state() == DynamicCaptureSession.State.STOPPING) {
-            if (session.stopGraceElapsed(currentTick, stoppingGraceTicks)) {
-                return new TickResult(session.finish(DynamicCaptureSessionEndReason.INVALIDATED));
+            if (session.hasPendingFrameUpload()) {
+                if (session.hasPendingFrameTimedOut(currentTick)) {
+                    if (session.pendingFrameRetryCount() < maxPendingFrameRetries) {
+                        return new TickResult(false, true, null);
+                    }
+                    return new TickResult(false, false, session.finish(DynamicCaptureSessionEndReason.INVALIDATED));
+                }
+                return new TickResult(false, false, null);
             }
-            return new TickResult(null);
+            return new TickResult(false, false, session.finish(DynamicCaptureSessionEndReason.INVALIDATED));
+        }
+
+        if (session.hasPendingFrameUpload()) {
+            if (session.hasPendingFrameTimedOut(currentTick)) {
+                if (session.pendingFrameRetryCount() < maxPendingFrameRetries) {
+                    return new TickResult(false, true, null);
+                }
+                session.requestStop(DynamicCaptureSessionEndReason.INTERRUPTED);
+            }
+            return new TickResult(false, false, null);
         }
 
         if (session.hasTimedOut(currentTick)) {
-            session.requestStop(DynamicCaptureSessionEndReason.TIME_LIMIT, currentTick);
-        } else if (session.isFilmExhausted()) {
-            session.requestStop(DynamicCaptureSessionEndReason.FILM_EXHAUSTED, currentTick);
-        } else if (session.hasStalled(currentTick)) {
-            session.requestStop(DynamicCaptureSessionEndReason.INTERRUPTED, currentTick);
+            session.requestStop(DynamicCaptureSessionEndReason.TIME_LIMIT);
+            return new TickResult(false, false, null);
         }
-        return new TickResult(null);
+
+        if (session.isFilmExhausted()) {
+            session.requestStop(DynamicCaptureSessionEndReason.FILM_EXHAUSTED);
+            return new TickResult(false, false, null);
+        }
+
+        return new TickResult(session.shouldCaptureOnTick(currentTick), false, null);
     }
 }

@@ -42,12 +42,12 @@ class DynamicRecordingTriggerTest {
     }
 
     @Test
-    void stallTimeoutScalesWithFrameArea() {
+    void pendingFrameTimeoutScalesWithFrameArea() {
         DynamicRecordingTrigger trigger = new DynamicRecordingTrigger();
 
-        assertEquals(200, trigger.calculateStallTimeoutTicks(320, 320));
-        assertEquals(800, trigger.calculateStallTimeoutTicks(640, 320));
-        assertEquals(1800, trigger.calculateStallTimeoutTicks(960, 320));
-        assertEquals(1800, trigger.calculateStallTimeoutTicks(920, 320));
+        assertEquals(200, trigger.calculatePendingFrameTimeoutTicks(320, 320));
+        assertEquals(800, trigger.calculatePendingFrameTimeoutTicks(640, 320));
+        assertEquals(1800, trigger.calculatePendingFrameTimeoutTicks(960, 320));
+        assertEquals(1800, trigger.calculatePendingFrameTimeoutTicks(920, 320));
     }
 }

@@ -18,14 +18,15 @@ public class DynamicCaptureSessionManager {
     }
 
     public DynamicCaptureSession startSession(UUID playerId, String sessionId, long startTick, int captureIntervalTicks,
-                                              int maxFrames, int maxRecordingDurationTicks, int stallTimeoutTicks) {
+                                              int maxFrames, int maxRecordingDurationTicks,
+                                              int pendingFrameTimeoutTicks) {
         DynamicCaptureSession existing = sessionsByPlayer.get(playerId);
         if (existing != null && existing.isActive()) {
             throw new IllegalStateException("Player already has an active dynamic capture session.");
         }
 
         DynamicCaptureSession session = new DynamicCaptureSession(sessionId, playerId, startTick, captureIntervalTicks,
-                maxFrames, maxRecordingDurationTicks, stallTimeoutTicks);
+                maxFrames, maxRecordingDurationTicks, pendingFrameTimeoutTicks);
         sessionsByPlayer.put(playerId, session);
         return session;
     }

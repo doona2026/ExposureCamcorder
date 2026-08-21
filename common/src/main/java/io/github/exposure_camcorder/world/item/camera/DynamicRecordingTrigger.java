@@ -2,6 +2,8 @@ package io.github.exposure_camcorder.world.item.camera;
 
 import io.github.exposure_camcorder.Config;
 import io.github.exposure_camcorder.ExposureCamcorder;
+import io.github.exposure_camcorder.compatibility.exposure.ExposureAccess;
+import io.github.exposure_camcorder.network.packet.s2c.DynamicCaptureFrameRequestS2CP;
 import io.github.exposure_camcorder.network.packet.s2c.DynamicCaptureStartS2CP;
 import io.github.exposure_camcorder.network.packet.s2c.DynamicCaptureStateS2CP;
 import io.github.exposure_camcorder.util.DynamicPhotographFactory;
@@ -11,23 +13,23 @@ import io.github.exposure_camcorder.world.session.DynamicCaptureSessionResult;
 import io.github.exposure_camcorder.world.session.DynamicCaptureTicker;
 import io.github.mortuusars.exposure.network.Packets;
 import io.github.mortuusars.exposure.world.camera.capture.CaptureParameters;
-import io.github.mortuusars.exposure.world.camera.film.properties.FilmProperties;
 import io.github.mortuusars.exposure.world.entity.CameraHolder;
+import io.github.mortuusars.exposure.world.camera.frame.Frame;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import io.github.mortuusars.exposure.world.camera.frame.Frame;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 public class DynamicRecordingTrigger {
-    private static final int BASE_STALL_TIMEOUT_TICKS = 200;
-    private static final int MAX_STALL_TIMEOUT_TICKS = 20 * 180;
+    private static final int BASE_PENDING_FRAME_TIMEOUT_TICKS = 200;
+    private static final int MAX_PENDING_FRAME_TIMEOUT_TICKS = 20 * 180;
 
     private final DynamicCameraModeController modeController = new DynamicCameraModeController();
 
@@ -55,18 +57,20 @@ public class DynamicRecordingTrigger {
         int durationBudgetTicks = calculateDurationBudgetTicks(maxFrames, state.captureIntervalTicks(), frameSize,
                 defaultFrameSize,
                 Config.Server.MAX_RECORDING_DURATION_TICKS.get());
-        int stallTimeoutTicks = calculateStallTimeoutTicks(frameSize, defaultFrameSize);
+        int pendingFrameTimeoutTicks = calculatePendingFrameTimeoutTicks(frameSize, defaultFrameSize);
         String sessionId = UUID.randomUUID().toString();
         DynamicCaptureSession session = ExposureCamcorder.captureSessionManager().startSession(player.getUUID(), sessionId,
-                level.getGameTime(), state.captureIntervalTicks(), maxFrames, durationBudgetTicks, stallTimeoutTicks);
+                level.getGameTime(), state.captureIntervalTicks(), maxFrames, durationBudgetTicks,
+                pendingFrameTimeoutTicks);
 
-        CaptureParameters captureParameters = createCaptureParameters(serverPlayer, cameraStack, sessionId);
         ExposureCamcorder.LOGGER.info(
-                "Dynamic capture session '{}' started for '{}': maxFrames={}, interval={}ticks, budget={}ticks, stall={}ticks.",
+                "Dynamic capture session '{}' started for '{}': maxFrames={}, interval={}ticks, budget={}ticks, pendingTimeout={}ticks.",
                 session.sessionId(), player.getScoreboardName(), session.maxFrames(),
-                session.captureIntervalTicks(), session.maxRecordingDurationTicks(), session.stallTimeoutTicks());
+                session.captureIntervalTicks(), session.maxRecordingDurationTicks(),
+                session.pendingFrameTimeoutTicks());
         Packets.sendToClient(new DynamicCaptureStartS2CP(session.sessionId(), session.captureIntervalTicks(),
-                session.maxFrames(), session.maxRecordingDurationTicks(), captureParameters), serverPlayer);
+                session.maxFrames(), session.maxRecordingDurationTicks()), serverPlayer);
+        sendState(serverPlayer, session, false);
         return true;
     }
 
@@ -79,10 +83,11 @@ public class DynamicRecordingTrigger {
         return (int) Math.max(minimumDurationTicks, Math.min(Integer.MAX_VALUE, captureWindow));
     }
 
-    int calculateStallTimeoutTicks(int frameSize, int defaultFrameSize) {
+    int calculatePendingFrameTimeoutTicks(int frameSize, int defaultFrameSize) {
         long frameAreaMultiplier = calculateFrameAreaMultiplier(frameSize, defaultFrameSize);
-        long timeout = (long) BASE_STALL_TIMEOUT_TICKS * frameAreaMultiplier;
-        return (int) Math.max(BASE_STALL_TIMEOUT_TICKS, Math.min(MAX_STALL_TIMEOUT_TICKS, timeout));
+        long timeout = (long) BASE_PENDING_FRAME_TIMEOUT_TICKS * frameAreaMultiplier;
+        return (int) Math.max(BASE_PENDING_FRAME_TIMEOUT_TICKS,
+                Math.min(MAX_PENDING_FRAME_TIMEOUT_TICKS, timeout));
     }
 
     private long calculateFrameAreaMultiplier(int frameSize, int defaultFrameSize) {
@@ -101,9 +106,43 @@ public class DynamicRecordingTrigger {
         ItemStack cameraStack = resolveCameraStack(player);
         DynamicCaptureTicker.TickResult tickResult = ExposureCamcorder.captureTicker()
                 .tickSession(session, player.level().getGameTime());
+        if (tickResult.shouldRetryPendingFrame()) {
+            retryPendingFrame(player, cameraStack, session);
+            sendState(player, session, false);
+        }
+
+        if (tickResult.shouldRequestFrame()) {
+            requestNextFrame(player, cameraStack, session);
+            sendState(player, session, false);
+        }
+
         if (tickResult.hasCompletedSession()) {
             finalizeCompletedSession(player, cameraStack, tickResult.completedSession());
         }
+    }
+
+    private void requestNextFrame(ServerPlayer player, ItemStack cameraStack, DynamicCaptureSession session) {
+        int frameIndex = session.frameCount();
+        session.markFrameRequested(player.level().getGameTime());
+        sendFrameRequest(player, cameraStack, session, frameIndex);
+    }
+
+    private void retryPendingFrame(ServerPlayer player, ItemStack cameraStack, DynamicCaptureSession session) {
+        int frameIndex = session.pendingFrameIndex();
+        if (frameIndex < 0) {
+            return;
+        }
+
+        session.markPendingFrameRetried(player.level().getGameTime());
+        sendFrameRequest(player, cameraStack, session, frameIndex);
+    }
+
+    private void sendFrameRequest(ServerPlayer player, ItemStack cameraStack, DynamicCaptureSession session,
+                                  int frameIndex) {
+        String exposureId = ExposureAccess.createExposureId(session.sessionId(), frameIndex);
+        ExposureAccess.expectFrameUpload(player, exposureId);
+        Packets.sendToClient(new DynamicCaptureFrameRequestS2CP(session.sessionId(), frameIndex, exposureId,
+                createCaptureParameters(player, cameraStack, exposureId)), player);
     }
 
     private CaptureParameters createCaptureParameters(ServerPlayer player, ItemStack cameraStack, String exposureId) {
@@ -121,7 +160,8 @@ public class DynamicRecordingTrigger {
     private void finalizeCompletedSession(ServerPlayer player, ItemStack cameraStack, DynamicCaptureSessionResult result) {
         ExposureCamcorder.LOGGER.info("Dynamic capture session '{}' finished for '{}': reason={}, frames={}.",
                 result.sessionId(), player.getScoreboardName(), result.endReason(), result.frameCount());
-        Packets.sendToClient(new DynamicCaptureStateS2CP(result.sessionId(), result.frameCount(), true), player);
+        Packets.sendToClient(new DynamicCaptureStateS2CP(result.sessionId(), result.frameCount(),
+                0, 0, true), player);
         ExposureCamcorder.captureSessionManager().removeSession(player.getUUID());
 
         List<Frame> combinedFrames = new ArrayList<>(modeController.getRecordedFrames(cameraStack));
@@ -177,5 +217,13 @@ public class DynamicRecordingTrigger {
         }
 
         return mainHandItem;
+    }
+
+    private void sendState(ServerPlayer player, DynamicCaptureSession session, boolean stopping) {
+        int remainingFrames = Math.max(0, session.maxFrames() - session.frameCount());
+        int remainingDurationTicks = Math.max(0,
+                session.maxRecordingDurationTicks() - (int) session.elapsedTicks(player.level().getGameTime()));
+        Packets.sendToClient(new DynamicCaptureStateS2CP(session.sessionId(), session.frameCount(),
+                remainingFrames, remainingDurationTicks, stopping), player);
     }
 }

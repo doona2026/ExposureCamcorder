@@ -8,11 +8,13 @@ import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 
-public record DynamicCaptureStateS2CP(String sessionId, int recordedFrames, boolean stopping) implements HandledPayload {
+public record DynamicCaptureStateS2CP(String sessionId, int recordedFrames, int remainingFrames,
+                                      int remainingDurationTicks, boolean stopping) implements HandledPayload {
     public static final ResourceLocation ID = ExposureCamcorder.resource("dynamic_capture_state");
 
     public static DynamicCaptureStateS2CP read(FriendlyByteBuf buffer) {
-        return new DynamicCaptureStateS2CP(buffer.readUtf(128), buffer.readVarInt(), buffer.readBoolean());
+        return new DynamicCaptureStateS2CP(buffer.readUtf(128), buffer.readVarInt(), buffer.readVarInt(),
+                buffer.readVarInt(), buffer.readBoolean());
     }
 
     @Override
@@ -24,6 +26,8 @@ public record DynamicCaptureStateS2CP(String sessionId, int recordedFrames, bool
     public void write(FriendlyByteBuf buffer) {
         buffer.writeUtf(sessionId, 128);
         buffer.writeVarInt(recordedFrames);
+        buffer.writeVarInt(remainingFrames);
+        buffer.writeVarInt(remainingDurationTicks);
         buffer.writeBoolean(stopping);
     }
 

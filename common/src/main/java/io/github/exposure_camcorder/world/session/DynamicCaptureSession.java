@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.UUID;
 
 public class DynamicCaptureSession {
+    private static final int DEFAULT_PENDING_FRAME_TIMEOUT_TICKS = 200;
+
     private static final int DEFAULT_STALL_TIMEOUT_TICKS = 200;
 
     public enum State {
@@ -24,24 +26,24 @@ public class DynamicCaptureSession {
     private final int captureIntervalTicks;
     private final int maxFrames;
     private final int maxRecordingDurationTicks;
-    private final int stallTimeoutTicks;
+    private final int pendingFrameTimeoutTicks;
     private final List<Frame> frames;
     private final List<Frame> framesView;
 
     private State state = State.STARTING;
     private DynamicCaptureSessionEndReason endReason;
-    private long lastFrameReceivedTick;
-    private long lastClientActivityTick;
-    private long stopRequestedTick = -1L;
+    private int pendingFrameIndex = -1;
+    private long pendingFrameRequestedAtTick = -1L;
+    private int pendingFrameRetryCount;
 
     public DynamicCaptureSession(String sessionId, UUID playerId, long startTick, int captureIntervalTicks,
                                  int maxFrames, int maxRecordingDurationTicks) {
         this(sessionId, playerId, startTick, captureIntervalTicks, maxFrames, maxRecordingDurationTicks,
-                DEFAULT_STALL_TIMEOUT_TICKS);
+                DEFAULT_PENDING_FRAME_TIMEOUT_TICKS);
     }
 
     public DynamicCaptureSession(String sessionId, UUID playerId, long startTick, int captureIntervalTicks,
-                                 int maxFrames, int maxRecordingDurationTicks, int stallTimeoutTicks) {
+                                 int maxFrames, int maxRecordingDurationTicks, int pendingFrameTimeoutTicks) {
         this.sessionId = sessionId;
         this.playerId = playerId;
         this.startTick = startTick;
@@ -51,14 +53,12 @@ public class DynamicCaptureSession {
             throw new IllegalArgumentException("maxRecordingDurationTicks must be positive.");
         }
         this.maxRecordingDurationTicks = maxRecordingDurationTicks;
-        if (stallTimeoutTicks <= 0) {
-            throw new IllegalArgumentException("stallTimeoutTicks must be positive.");
+        if (pendingFrameTimeoutTicks <= 0) {
+            throw new IllegalArgumentException("pendingFrameTimeoutTicks must be positive.");
         }
-        this.stallTimeoutTicks = stallTimeoutTicks;
+        this.pendingFrameTimeoutTicks = pendingFrameTimeoutTicks;
         this.frames = new ArrayList<>(maxFrames);
         this.framesView = Collections.unmodifiableList(frames);
-        this.lastFrameReceivedTick = startTick;
-        this.lastClientActivityTick = startTick;
     }
 
     public String sessionId() {
@@ -85,8 +85,8 @@ public class DynamicCaptureSession {
         return maxRecordingDurationTicks;
     }
 
-    public int stallTimeoutTicks() {
-        return stallTimeoutTicks;
+    public int pendingFrameTimeoutTicks() {
+        return pendingFrameTimeoutTicks;
     }
 
     public State state() {
@@ -99,6 +99,14 @@ public class DynamicCaptureSession {
 
     public int frameCount() {
         return frames.size();
+    }
+
+    public int pendingFrameIndex() {
+        return pendingFrameIndex;
+    }
+
+    public int pendingFrameRetryCount() {
+        return pendingFrameRetryCount;
     }
 
     public DynamicCaptureSessionEndReason endReason() {
@@ -124,7 +132,7 @@ public class DynamicCaptureSession {
     }
 
     public boolean canAppendFrame() {
-        return (state == State.RECORDING || state == State.STOPPING) && frames.size() < maxFrames;
+        return (state == State.RECORDING || hasPendingFrameUpload()) && frames.size() < maxFrames;
     }
 
     public void appendFrame(Frame frame) {
@@ -132,6 +140,11 @@ public class DynamicCaptureSession {
             throw new IllegalStateException("Session cannot accept more frames in state " + state);
         }
         frames.add(frame);
+        if (pendingFrameIndex == frames.size() - 1) {
+            pendingFrameIndex = -1;
+            pendingFrameRequestedAtTick = -1L;
+            pendingFrameRetryCount = 0;
+        }
     }
 
     public long elapsedTicks(long currentTick) {
@@ -146,45 +159,45 @@ public class DynamicCaptureSession {
         return frames.size() >= maxFrames;
     }
 
-    public void markFrameReceived(long currentTick) {
-        lastFrameReceivedTick = currentTick;
-        lastClientActivityTick = currentTick;
-    }
-
-    public void markClientActivity(long currentTick) {
-        lastClientActivityTick = currentTick;
-    }
-
-    public boolean hasStalled(long currentTick) {
-        if (state != State.RECORDING) {
-            return false;
-        }
-        return currentTick - lastClientActivityTick >= stallTimeoutTicks;
-    }
-
     public void requestStop(DynamicCaptureSessionEndReason reason) {
-        requestStop(reason, -1L);
-    }
-
-    public void requestStop(DynamicCaptureSessionEndReason reason, long currentTick) {
         if (state == State.FINISHED) {
             return;
         }
         endReason = reason;
         state = State.STOPPING;
-        if (stopRequestedTick < 0L && currentTick >= 0L) {
-            stopRequestedTick = currentTick;
-        }
     }
 
-    public boolean stopGraceElapsed(long currentTick, int graceTicks) {
-        if (state != State.STOPPING) {
+    public boolean shouldCaptureOnTick(long currentTick) {
+        if (state != State.RECORDING || isFilmExhausted() || hasPendingFrameUpload()) {
             return false;
         }
-        if (stopRequestedTick < 0L) {
-            stopRequestedTick = currentTick;
+        long scheduledTick = startTick + (long) frames.size() * captureIntervalTicks;
+        return currentTick >= scheduledTick;
+    }
+
+    public void markFrameRequested(long currentTick) {
+        pendingFrameIndex = frames.size();
+        pendingFrameRequestedAtTick = currentTick;
+        pendingFrameRetryCount = 0;
+    }
+
+    public void markPendingFrameRetried(long currentTick) {
+        if (!hasPendingFrameUpload()) {
+            throw new IllegalStateException("No pending frame upload to retry.");
         }
-        return graceTicks > 0 && currentTick - stopRequestedTick >= graceTicks;
+        pendingFrameRequestedAtTick = currentTick;
+        pendingFrameRetryCount++;
+    }
+
+    public boolean hasPendingFrameUpload() {
+        return pendingFrameIndex >= frames.size() && pendingFrameIndex < maxFrames;
+    }
+
+    public boolean hasPendingFrameTimedOut(long currentTick) {
+        if (!hasPendingFrameUpload() || pendingFrameRequestedAtTick < 0L) {
+            return false;
+        }
+        return currentTick - pendingFrameRequestedAtTick >= pendingFrameTimeoutTicks;
     }
 
     public DynamicCaptureSessionResult finish(DynamicCaptureSessionEndReason fallbackReason) {

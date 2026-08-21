@@ -13,7 +13,8 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import org.jetbrains.annotations.NotNull;
 
-public record DynamicCaptureStateS2CP(String sessionId, int recordedFrames, boolean stopping)
+public record DynamicCaptureStateS2CP(String sessionId, int recordedFrames, int remainingFrames,
+                                      int remainingDurationTicks, boolean stopping)
         implements Packet, HandledPayload, CustomPacketPayload {
     public static final ResourceLocation ID = ExposureCamcorder.resource("dynamic_capture_state");
     public static final Type<DynamicCaptureStateS2CP> TYPE = new Type<>(ID);
@@ -21,6 +22,8 @@ public record DynamicCaptureStateS2CP(String sessionId, int recordedFrames, bool
     public static final StreamCodec<FriendlyByteBuf, DynamicCaptureStateS2CP> STREAM_CODEC = StreamCodec.composite(
             ByteBufCodecs.STRING_UTF8, DynamicCaptureStateS2CP::sessionId,
             ByteBufCodecs.VAR_INT, DynamicCaptureStateS2CP::recordedFrames,
+            ByteBufCodecs.VAR_INT, DynamicCaptureStateS2CP::remainingFrames,
+            ByteBufCodecs.VAR_INT, DynamicCaptureStateS2CP::remainingDurationTicks,
             ByteBufCodecs.BOOL, DynamicCaptureStateS2CP::stopping,
             DynamicCaptureStateS2CP::new
     );
