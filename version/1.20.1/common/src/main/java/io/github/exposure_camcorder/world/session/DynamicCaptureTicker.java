@@ -1,22 +1,17 @@
 package io.github.exposure_camcorder.world.session;
 
 public class DynamicCaptureTicker {
-    private final int stallTicks;
     private final int stoppingGraceTicks;
 
     public DynamicCaptureTicker() {
-        this(200, 100);
+        this(100);
     }
 
-    public DynamicCaptureTicker(int stallTicks, int stoppingGraceTicks) {
-        if (stallTicks <= 0) {
-            throw new IllegalArgumentException("stallTicks must be positive.");
-        }
+    public DynamicCaptureTicker(int stoppingGraceTicks) {
         if (stoppingGraceTicks < 0) {
             throw new IllegalArgumentException("stoppingGraceTicks cannot be negative.");
         }
 
-        this.stallTicks = stallTicks;
         this.stoppingGraceTicks = stoppingGraceTicks;
     }
 
@@ -46,7 +41,7 @@ public class DynamicCaptureTicker {
             session.requestStop(DynamicCaptureSessionEndReason.TIME_LIMIT, currentTick);
         } else if (session.isFilmExhausted()) {
             session.requestStop(DynamicCaptureSessionEndReason.FILM_EXHAUSTED, currentTick);
-        } else if (session.hasStalled(currentTick, stallTicks)) {
+        } else if (session.hasStalled(currentTick)) {
             session.requestStop(DynamicCaptureSessionEndReason.INTERRUPTED, currentTick);
         }
         return new TickResult(null);

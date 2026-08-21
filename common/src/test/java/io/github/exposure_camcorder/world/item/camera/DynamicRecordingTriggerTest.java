@@ -40,4 +40,14 @@ class DynamicRecordingTriggerTest {
         assertTrue(hires320 > standard320);
         assertTrue(hires600 > standard600);
     }
+
+    @Test
+    void stallTimeoutScalesWithFrameArea() {
+        DynamicRecordingTrigger trigger = new DynamicRecordingTrigger();
+
+        assertEquals(200, trigger.calculateStallTimeoutTicks(320, 320));
+        assertEquals(800, trigger.calculateStallTimeoutTicks(640, 320));
+        assertEquals(1800, trigger.calculateStallTimeoutTicks(960, 320));
+        assertEquals(1800, trigger.calculateStallTimeoutTicks(920, 320));
+    }
 }

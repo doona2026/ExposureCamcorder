@@ -16,6 +16,12 @@ class DynamicCaptureTickerTest {
         return new DynamicCaptureSession("session-a", UUID.randomUUID(), startTick, interval, maxFrames, maxDurationTicks);
     }
 
+    private static DynamicCaptureSession session(int startTick, int interval, int maxFrames, int maxDurationTicks,
+                                                 int stallTimeoutTicks) {
+        return new DynamicCaptureSession("session-a", UUID.randomUUID(), startTick, interval, maxFrames,
+                maxDurationTicks, stallTimeoutTicks);
+    }
+
     @Test
     void startingSessionBeginsRecordingOnFirstTick() {
         DynamicCaptureSession session = session(0, 2, 40, 160);
@@ -69,8 +75,8 @@ class DynamicCaptureTickerTest {
 
     @Test
     void stalledSessionIsInterruptedWhenNoFramesArrive() {
-        DynamicCaptureSession session = session(0, 2, 40, 10000);
-        DynamicCaptureTicker ticker = new DynamicCaptureTicker(200, 100);
+        DynamicCaptureSession session = session(0, 2, 40, 10000, 200);
+        DynamicCaptureTicker ticker = new DynamicCaptureTicker(100);
 
         ticker.tickSession(session, 0L);
 
@@ -89,8 +95,8 @@ class DynamicCaptureTickerTest {
 
     @Test
     void framesReceivedResetTheStallTimer() {
-        DynamicCaptureSession session = session(0, 2, 40, 10000);
-        DynamicCaptureTicker ticker = new DynamicCaptureTicker(200, 100);
+        DynamicCaptureSession session = session(0, 2, 40, 10000, 200);
+        DynamicCaptureTicker ticker = new DynamicCaptureTicker(100);
 
         ticker.tickSession(session, 0L);
         session.markFrameReceived(150L);
@@ -102,8 +108,8 @@ class DynamicCaptureTickerTest {
 
     @Test
     void clientActivityResetsTheStallTimerWhileHighResolutionFrameIsProcessing() {
-        DynamicCaptureSession session = session(0, 2, 600, 10000);
-        DynamicCaptureTicker ticker = new DynamicCaptureTicker(200, 100);
+        DynamicCaptureSession session = session(0, 2, 600, 10000, 200);
+        DynamicCaptureTicker ticker = new DynamicCaptureTicker(100);
 
         ticker.tickSession(session, 0L);
         session.markClientActivity(350L);
@@ -113,6 +119,23 @@ class DynamicCaptureTickerTest {
         assertTrue(session.isRecording());
 
         DynamicCaptureTicker.TickResult stalledTick = ticker.tickSession(session, 550L);
+        assertNull(stalledTick.completedSession());
+        assertTrue(session.isStopping());
+    }
+
+    @Test
+    void largerPerSessionStallTimeoutAllowsHighResolutionCaptureToSurviveLongTicks() {
+        DynamicCaptureSession session = session(0, 2, 600, 10000, 1800);
+        DynamicCaptureTicker ticker = new DynamicCaptureTicker(100);
+
+        ticker.tickSession(session, 0L);
+        session.markClientActivity(350L);
+
+        DynamicCaptureTicker.TickResult result = ticker.tickSession(session, 1200L);
+        assertNull(result.completedSession());
+        assertTrue(session.isRecording());
+
+        DynamicCaptureTicker.TickResult stalledTick = ticker.tickSession(session, 2150L);
         assertNull(stalledTick.completedSession());
         assertTrue(session.isStopping());
     }

@@ -26,6 +26,9 @@ import java.util.Optional;
 import java.util.UUID;
 
 public class DynamicRecordingTrigger {
+    private static final int BASE_STALL_TIMEOUT_TICKS = 200;
+    private static final int MAX_STALL_TIMEOUT_TICKS = 20 * 180;
+
     private final DynamicCameraModeController modeController = new DynamicCameraModeController();
 
     public boolean isRecording(Player player) {
@@ -48,17 +51,20 @@ public class DynamicRecordingTrigger {
 
         int maxFrames = modeController.getMaxFrames(cameraStack);
         int frameSize = modeController.getFrameSize(cameraStack);
+        int defaultFrameSize = io.github.mortuusars.exposure.Config.Server.DEFAULT_FRAME_SIZE.get();
         int durationBudgetTicks = calculateDurationBudgetTicks(maxFrames, state.captureIntervalTicks(), frameSize,
-                io.github.mortuusars.exposure.Config.Server.DEFAULT_FRAME_SIZE.get(),
+                defaultFrameSize,
                 Config.Server.MAX_RECORDING_DURATION_TICKS.get());
+        int stallTimeoutTicks = calculateStallTimeoutTicks(frameSize, defaultFrameSize);
         String sessionId = UUID.randomUUID().toString();
         DynamicCaptureSession session = ExposureCamcorder.captureSessionManager().startSession(player.getUUID(), sessionId,
-                level.getGameTime(), state.captureIntervalTicks(), maxFrames, durationBudgetTicks);
+                level.getGameTime(), state.captureIntervalTicks(), maxFrames, durationBudgetTicks, stallTimeoutTicks);
 
         CaptureParameters captureParameters = createCaptureParameters(serverPlayer, cameraStack, sessionId);
-        ExposureCamcorder.LOGGER.info("Dynamic capture session '{}' started for '{}': maxFrames={}, interval={}ticks, budget={}ticks.",
+        ExposureCamcorder.LOGGER.info(
+                "Dynamic capture session '{}' started for '{}': maxFrames={}, interval={}ticks, budget={}ticks, stall={}ticks.",
                 session.sessionId(), player.getScoreboardName(), session.maxFrames(),
-                session.captureIntervalTicks(), session.maxRecordingDurationTicks());
+                session.captureIntervalTicks(), session.maxRecordingDurationTicks(), session.stallTimeoutTicks());
         Packets.sendToClient(new DynamicCaptureStartS2CP(session.sessionId(), session.captureIntervalTicks(),
                 session.maxFrames(), session.maxRecordingDurationTicks(), captureParameters), serverPlayer);
         return true;
@@ -71,6 +77,17 @@ public class DynamicRecordingTrigger {
                 ((long) frameSize * frameSize + defaultArea - 1L) / defaultArea);
         long captureWindow = (long) maxFrames * (long) captureIntervalTicks * 4L * frameAreaMultiplier;
         return (int) Math.max(minimumDurationTicks, Math.min(Integer.MAX_VALUE, captureWindow));
+    }
+
+    int calculateStallTimeoutTicks(int frameSize, int defaultFrameSize) {
+        long frameAreaMultiplier = calculateFrameAreaMultiplier(frameSize, defaultFrameSize);
+        long timeout = (long) BASE_STALL_TIMEOUT_TICKS * frameAreaMultiplier;
+        return (int) Math.max(BASE_STALL_TIMEOUT_TICKS, Math.min(MAX_STALL_TIMEOUT_TICKS, timeout));
+    }
+
+    private long calculateFrameAreaMultiplier(int frameSize, int defaultFrameSize) {
+        long defaultArea = (long) defaultFrameSize * defaultFrameSize;
+        return Math.max(1L, ((long) frameSize * frameSize + defaultArea - 1L) / defaultArea);
     }
 
     public void tickServerPlayer(ServerPlayer player) {

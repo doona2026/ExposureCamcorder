@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.UUID;
 
 public class DynamicCaptureSession {
+    private static final int DEFAULT_STALL_TIMEOUT_TICKS = 200;
+
     public enum State {
         STARTING,
         RECORDING,
@@ -22,6 +24,7 @@ public class DynamicCaptureSession {
     private final int captureIntervalTicks;
     private final int maxFrames;
     private final int maxRecordingDurationTicks;
+    private final int stallTimeoutTicks;
     private final List<Frame> frames;
     private final List<Frame> framesView;
 
@@ -33,6 +36,12 @@ public class DynamicCaptureSession {
 
     public DynamicCaptureSession(String sessionId, UUID playerId, long startTick, int captureIntervalTicks,
                                  int maxFrames, int maxRecordingDurationTicks) {
+        this(sessionId, playerId, startTick, captureIntervalTicks, maxFrames, maxRecordingDurationTicks,
+                DEFAULT_STALL_TIMEOUT_TICKS);
+    }
+
+    public DynamicCaptureSession(String sessionId, UUID playerId, long startTick, int captureIntervalTicks,
+                                 int maxFrames, int maxRecordingDurationTicks, int stallTimeoutTicks) {
         this.sessionId = sessionId;
         this.playerId = playerId;
         this.startTick = startTick;
@@ -42,6 +51,10 @@ public class DynamicCaptureSession {
             throw new IllegalArgumentException("maxRecordingDurationTicks must be positive.");
         }
         this.maxRecordingDurationTicks = maxRecordingDurationTicks;
+        if (stallTimeoutTicks <= 0) {
+            throw new IllegalArgumentException("stallTimeoutTicks must be positive.");
+        }
+        this.stallTimeoutTicks = stallTimeoutTicks;
         this.frames = new ArrayList<>(maxFrames);
         this.framesView = Collections.unmodifiableList(frames);
         this.lastFrameReceivedTick = startTick;
@@ -70,6 +83,10 @@ public class DynamicCaptureSession {
 
     public int maxRecordingDurationTicks() {
         return maxRecordingDurationTicks;
+    }
+
+    public int stallTimeoutTicks() {
+        return stallTimeoutTicks;
     }
 
     public State state() {
@@ -138,11 +155,11 @@ public class DynamicCaptureSession {
         lastClientActivityTick = currentTick;
     }
 
-    public boolean hasStalled(long currentTick, int stallTicks) {
-        if (state != State.RECORDING || stallTicks <= 0) {
+    public boolean hasStalled(long currentTick) {
+        if (state != State.RECORDING) {
             return false;
         }
-        return currentTick - lastClientActivityTick >= stallTicks;
+        return currentTick - lastClientActivityTick >= stallTimeoutTicks;
     }
 
     public void requestStop(DynamicCaptureSessionEndReason reason) {
