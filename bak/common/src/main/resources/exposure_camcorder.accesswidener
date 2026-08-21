@@ -1,4 +1,0 @@
-accessWidener v2 named
-accessible field net/minecraft/client/gui/screens/Screen width I
-accessible field net/minecraft/client/gui/screens/Screen height I
-accessible method net/minecraft/client/gui/screens/Screen addRenderableWidget (Lnet/minecraft/client/gui/components/events/GuiEventListener;)Lnet/minecraft/client/gui/components/events/GuiEventListener;
