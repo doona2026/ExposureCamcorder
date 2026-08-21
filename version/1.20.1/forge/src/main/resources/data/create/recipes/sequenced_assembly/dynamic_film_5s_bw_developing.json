@@ -27,9 +27,8 @@
                 "item": "exposure_camcorder:dynamic_film_5s_bw"
               },
               {
-                "type": "fluid_stack",
-                "amount": 250,
-                "fluid": "minecraft:water"
+                "fluid": "minecraft:water",
+                "amount": 250
               }
             ],
             "results": [
@@ -39,7 +38,7 @@
             ]
           }
         ],
-        "transitional_item": {
+        "transitionalItem": {
           "item": "exposure_camcorder:dynamic_film_5s_bw"
         }
       }

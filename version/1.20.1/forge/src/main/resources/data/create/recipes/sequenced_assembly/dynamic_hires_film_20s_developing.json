@@ -27,15 +27,9 @@
                 "item": "exposure_camcorder:dynamic_hires_film_20s"
               },
               {
-                "type": "fluid_stack",
+                "fluid": "create:potion",
                 "amount": 250,
-                "components": {
-                  "create:potion_fluid_bottle_type": "regular",
-                  "minecraft:potion_contents": {
-                    "potion": "minecraft:awkward"
-                  }
-                },
-                "fluid": "create:potion"
+                "nbt": "{Potion:\"minecraft:awkward\"}"
               }
             ],
             "results": [
@@ -51,15 +45,9 @@
                 "item": "exposure_camcorder:dynamic_hires_film_20s"
               },
               {
-                "type": "fluid_stack",
+                "fluid": "create:potion",
                 "amount": 250,
-                "components": {
-                  "create:potion_fluid_bottle_type": "regular",
-                  "minecraft:potion_contents": {
-                    "potion": "minecraft:awkward"
-                  }
-                },
-                "fluid": "create:potion"
+                "nbt": "{Potion:\"minecraft:awkward\"}"
               }
             ],
             "results": [
@@ -75,15 +63,9 @@
                 "item": "exposure_camcorder:dynamic_hires_film_20s"
               },
               {
-                "type": "fluid_stack",
+                "fluid": "create:potion",
                 "amount": 250,
-                "components": {
-                  "create:potion_fluid_bottle_type": "regular",
-                  "minecraft:potion_contents": {
-                    "potion": "minecraft:thick"
-                  }
-                },
-                "fluid": "create:potion"
+                "nbt": "{Potion:\"minecraft:thick\"}"
               }
             ],
             "results": [
@@ -99,15 +81,9 @@
                 "item": "exposure_camcorder:dynamic_hires_film_20s"
               },
               {
-                "type": "fluid_stack",
+                "fluid": "create:potion",
                 "amount": 250,
-                "components": {
-                  "create:potion_fluid_bottle_type": "regular",
-                  "minecraft:potion_contents": {
-                    "potion": "minecraft:thick"
-                  }
-                },
-                "fluid": "create:potion"
+                "nbt": "{Potion:\"minecraft:thick\"}"
               }
             ],
             "results": [
@@ -123,15 +99,9 @@
                 "item": "exposure_camcorder:dynamic_hires_film_20s"
               },
               {
-                "type": "fluid_stack",
+                "fluid": "create:potion",
                 "amount": 250,
-                "components": {
-                  "create:potion_fluid_bottle_type": "regular",
-                  "minecraft:potion_contents": {
-                    "potion": "minecraft:mundane"
-                  }
-                },
-                "fluid": "create:potion"
+                "nbt": "{Potion:\"minecraft:mundane\"}"
               }
             ],
             "results": [
@@ -147,15 +117,9 @@
                 "item": "exposure_camcorder:dynamic_hires_film_20s"
               },
               {
-                "type": "fluid_stack",
+                "fluid": "create:potion",
                 "amount": 250,
-                "components": {
-                  "create:potion_fluid_bottle_type": "regular",
-                  "minecraft:potion_contents": {
-                    "potion": "minecraft:mundane"
-                  }
-                },
-                "fluid": "create:potion"
+                "nbt": "{Potion:\"minecraft:mundane\"}"
               }
             ],
             "results": [
@@ -197,7 +161,7 @@
             ]
           }
         ],
-        "transitional_item": {
+        "transitionalItem": {
           "item": "exposure_camcorder:dynamic_hires_film_20s"
         }
       }
