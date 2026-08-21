@@ -1,5 +1,6 @@
 package io.github.exposure_camcorder.world.item.camera;
 
+import io.github.exposure_camcorder.compatibility.exposure.ExposureAccess;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -47,7 +48,11 @@ class DynamicRecordingTriggerTest {
 
         assertEquals(200, trigger.calculatePendingFrameTimeoutTicks(320, 320));
         assertEquals(800, trigger.calculatePendingFrameTimeoutTicks(640, 320));
-        assertEquals(1800, trigger.calculatePendingFrameTimeoutTicks(960, 320));
-        assertEquals(1800, trigger.calculatePendingFrameTimeoutTicks(920, 320));
+        assertEquals(ExposureAccess.maxSafePendingFrameTimeoutTicks(),
+                trigger.calculatePendingFrameTimeoutTicks(960, 320));
+        assertEquals(ExposureAccess.maxSafePendingFrameTimeoutTicks(),
+                trigger.calculatePendingFrameTimeoutTicks(920, 320));
+        assertTrue(trigger.calculatePendingFrameTimeoutTicks(920, 320)
+                < ExposureAccess.expectedFrameUploadTimeoutTicks());
     }
 }

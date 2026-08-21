@@ -7,13 +7,28 @@ import io.github.mortuusars.exposure.ExposureServer;
 import io.github.mortuusars.exposure.world.camera.frame.Frame;
 import io.github.mortuusars.exposure.world.level.storage.ExposureData;
 import io.github.mortuusars.exposure.world.level.storage.ExposureIdentifier;
+import io.github.mortuusars.exposure.world.level.storage.ExposureRepository;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.util.Optional;
 
 public class ExposureAccess {
+    private static final int FRAME_UPLOAD_TIMEOUT_SAFETY_MARGIN_SECONDS = 5;
+    private static final int EXPECTED_FRAME_UPLOAD_TIMEOUT_TICKS =
+            ExposureRepository.EXPECTED_TIMEOUT_SECONDS * 20;
+    private static final int MAX_SAFE_PENDING_FRAME_TIMEOUT_TICKS = Math.max(20,
+            EXPECTED_FRAME_UPLOAD_TIMEOUT_TICKS - FRAME_UPLOAD_TIMEOUT_SAFETY_MARGIN_SECONDS * 20);
+
     public static void expectFrameUpload(ServerPlayer player, String exposureId) {
         ExposureServer.exposureRepository().expect(player, exposureId);
+    }
+
+    public static int expectedFrameUploadTimeoutTicks() {
+        return EXPECTED_FRAME_UPLOAD_TIMEOUT_TICKS;
+    }
+
+    public static int maxSafePendingFrameTimeoutTicks() {
+        return MAX_SAFE_PENDING_FRAME_TIMEOUT_TICKS;
     }
 
     public static boolean receiveFrameData(ServerPlayer player, String sessionId, int frameIndex, String exposureId,
@@ -38,12 +53,20 @@ public class ExposureAccess {
             return false;
         }
 
-        expectFrameUpload(player, exposureId);
-        if (!storeExposure(player, exposureId, exposureData)) {
+        String expectedExposureId = createExposureId(sessionId, frameIndex);
+        if (!expectedExposureId.equals(exposureId)) {
+            ExposureCamcorder.LOGGER.warn(
+                    "Discarding dynamic frame {} for session '{}' with mismatched exposure id '{}'. Expected '{}'.",
+                    frameIndex, sessionId, exposureId, expectedExposureId);
             return false;
         }
 
-        ExposureCamcorder.captureSessionManager().appendFrame(player.getUUID(), createFrame(exposureId));
+        if (!storeExposure(player, expectedExposureId, exposureData)) {
+            return false;
+        }
+
+        ExposureCamcorder.captureSessionManager()
+                .appendFrame(player.getUUID(), createFrame(expectedExposureId), player.level().getGameTime());
         return true;
     }
 

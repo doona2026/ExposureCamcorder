@@ -45,9 +45,6 @@ public class DynamicFrameCaptureClient {
     private static boolean keyUseWasDown;
     private static boolean freshPressPending;
 
-    public static void init() {
-    }
-
     public static void trackKeyState(Minecraft mc) {
         boolean keyUseDown = mc.options.keyUse.isDown();
         if (keyUseDown && !keyUseWasDown) {
@@ -73,16 +70,16 @@ public class DynamicFrameCaptureClient {
                 packet.maxFrames(), packet.maxRecordingDurationTicks());
     }
 
-    public static void tick() {
-    }
-
     public static void updateState(DynamicCaptureStateS2CP packet) {
+        if (!isCurrentSession(packet.sessionId())) {
+            return;
+        }
+
         UPLOAD_QUEUE.updateState(packet.sessionId(), packet.recordedFrames());
         if (packet.stopping()) {
             LOGGER.info("Server ended dynamic capture session '{}': {} frames recorded by server.",
                     packet.sessionId(), packet.recordedFrames());
             reset();
-            UPLOAD_QUEUE.finishSession(packet.sessionId());
             return;
         }
 
@@ -92,7 +89,8 @@ public class DynamicFrameCaptureClient {
     }
 
     public static void captureFrame(DynamicCaptureFrameRequestS2CP packet) {
-        if (!UPLOAD_QUEUE.hasActiveSession()) {
+        if (!isCurrentSession(packet.sessionId())
+                || !UPLOAD_QUEUE.acceptFrameRequest(packet.sessionId(), packet.frameIndex())) {
             return;
         }
         if (packet.sessionId().equals(inFlightSessionId) && packet.frameIndex() == inFlightFrameIndex) {
@@ -193,5 +191,9 @@ public class DynamicFrameCaptureClient {
             inFlightSessionId = null;
             inFlightFrameIndex = -1;
         }
+    }
+
+    private static boolean isCurrentSession(String sessionId) {
+        return recordingState != null && recordingState.sessionId().equals(sessionId);
     }
 }

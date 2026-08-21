@@ -11,8 +11,6 @@ import java.util.UUID;
 public class DynamicCaptureSession {
     private static final int DEFAULT_PENDING_FRAME_TIMEOUT_TICKS = 200;
 
-    private static final int DEFAULT_STALL_TIMEOUT_TICKS = 200;
-
     public enum State {
         STARTING,
         RECORDING,
@@ -35,6 +33,7 @@ public class DynamicCaptureSession {
     private int pendingFrameIndex = -1;
     private long pendingFrameRequestedAtTick = -1L;
     private int pendingFrameRetryCount;
+    private long nextFrameRequestTick;
 
     public DynamicCaptureSession(String sessionId, UUID playerId, long startTick, int captureIntervalTicks,
                                  int maxFrames, int maxRecordingDurationTicks) {
@@ -59,6 +58,7 @@ public class DynamicCaptureSession {
         this.pendingFrameTimeoutTicks = pendingFrameTimeoutTicks;
         this.frames = new ArrayList<>(maxFrames);
         this.framesView = Collections.unmodifiableList(frames);
+        this.nextFrameRequestTick = startTick;
     }
 
     public String sessionId() {
@@ -135,7 +135,7 @@ public class DynamicCaptureSession {
         return (state == State.RECORDING || hasPendingFrameUpload()) && frames.size() < maxFrames;
     }
 
-    public void appendFrame(Frame frame) {
+    public void appendFrame(Frame frame, long currentTick) {
         if (!canAppendFrame()) {
             throw new IllegalStateException("Session cannot accept more frames in state " + state);
         }
@@ -144,6 +144,7 @@ public class DynamicCaptureSession {
             pendingFrameIndex = -1;
             pendingFrameRequestedAtTick = -1L;
             pendingFrameRetryCount = 0;
+            nextFrameRequestTick = currentTick + captureIntervalTicks;
         }
     }
 
@@ -171,8 +172,7 @@ public class DynamicCaptureSession {
         if (state != State.RECORDING || isFilmExhausted() || hasPendingFrameUpload()) {
             return false;
         }
-        long scheduledTick = startTick + (long) frames.size() * captureIntervalTicks;
-        return currentTick >= scheduledTick;
+        return currentTick >= nextFrameRequestTick;
     }
 
     public void markFrameRequested(long currentTick) {

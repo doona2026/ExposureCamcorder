@@ -29,7 +29,7 @@ import java.util.UUID;
 
 public class DynamicRecordingTrigger {
     private static final int BASE_PENDING_FRAME_TIMEOUT_TICKS = 200;
-    private static final int MAX_PENDING_FRAME_TIMEOUT_TICKS = 20 * 180;
+    private static final int MAX_PENDING_FRAME_TIMEOUT_TICKS = ExposureAccess.maxSafePendingFrameTimeoutTicks();
 
     private final DynamicCameraModeController modeController = new DynamicCameraModeController();
 

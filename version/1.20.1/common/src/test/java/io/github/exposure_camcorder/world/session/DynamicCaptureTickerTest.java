@@ -36,7 +36,7 @@ class DynamicCaptureTickerTest {
     }
 
     @Test
-    void pendingFrameBlocksDuplicateCaptureRequestsUntilUploadArrives() {
+    void nextFrameWaitsFullIntervalAfterUploadInsteadOfCatchingUp() {
         DynamicCaptureSession session = session(0, 2, 3, 160);
         DynamicCaptureTicker ticker = new DynamicCaptureTicker();
 
@@ -45,8 +45,9 @@ class DynamicCaptureTickerTest {
         session.markFrameRequested(0L);
         assertFalse(ticker.tickSession(session, 2L).shouldRequestFrame());
 
-        session.appendFrame(Frame.EMPTY);
-        assertTrue(ticker.tickSession(session, 2L).shouldRequestFrame());
+        session.appendFrame(Frame.EMPTY, 2L);
+        assertFalse(ticker.tickSession(session, 2L).shouldRequestFrame());
+        assertTrue(ticker.tickSession(session, 4L).shouldRequestFrame());
     }
 
     @Test
@@ -113,7 +114,7 @@ class DynamicCaptureTickerTest {
         DynamicCaptureTicker.TickResult waitingTick = ticker.tickSession(session, 1L);
         assertFalse(waitingTick.hasCompletedSession());
 
-        session.appendFrame(Frame.EMPTY);
+        session.appendFrame(Frame.EMPTY, 2L);
         DynamicCaptureTicker.TickResult finishTick = ticker.tickSession(session, 2L);
         assertNotNull(finishTick.completedSession());
         assertEquals(1, finishTick.completedSession().frameCount());
@@ -127,17 +128,17 @@ class DynamicCaptureTickerTest {
 
         assertTrue(ticker.tickSession(session, 0L).shouldRequestFrame());
         session.markFrameRequested(0L);
-        session.appendFrame(Frame.EMPTY);
+        session.appendFrame(Frame.EMPTY, 2L);
 
-        assertTrue(ticker.tickSession(session, 2L).shouldRequestFrame());
-        session.markFrameRequested(2L);
-        session.appendFrame(Frame.EMPTY);
+        assertTrue(ticker.tickSession(session, 4L).shouldRequestFrame());
+        session.markFrameRequested(4L);
+        session.appendFrame(Frame.EMPTY, 6L);
 
-        DynamicCaptureTicker.TickResult exhaustedTick = ticker.tickSession(session, 3L);
+        DynamicCaptureTicker.TickResult exhaustedTick = ticker.tickSession(session, 7L);
         assertFalse(exhaustedTick.hasCompletedSession());
         assertTrue(session.isStopping());
 
-        DynamicCaptureTicker.TickResult finishTick = ticker.tickSession(session, 4L);
+        DynamicCaptureTicker.TickResult finishTick = ticker.tickSession(session, 8L);
         assertNotNull(finishTick.completedSession());
         assertEquals(DynamicCaptureSessionEndReason.FILM_EXHAUSTED, finishTick.completedSession().endReason());
         assertTrue(finishTick.completedSession().shouldCreatePhotograph());

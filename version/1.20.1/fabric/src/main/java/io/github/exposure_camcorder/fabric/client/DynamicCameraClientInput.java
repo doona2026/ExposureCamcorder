@@ -37,7 +37,6 @@ public final class DynamicCameraClientInput {
     }
 
     private static void onEndClientTick(Minecraft minecraft) {
-        DynamicFrameCaptureClient.tick();
         DynamicPhotographDisplayPlaybackManager.getInstance().tick(minecraft);
 
         while (TOGGLE_DYNAMIC_MODE_KEY.consumeClick()) {

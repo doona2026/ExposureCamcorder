@@ -44,7 +44,6 @@ public final class DynamicCameraClientInputNeoForge {
             return;
         }
 
-        DynamicFrameCaptureClient.tick();
         DynamicPhotographDisplayPlaybackManager.getInstance().tick(minecraft);
 
         while (TOGGLE_DYNAMIC_MODE_KEY.consumeClick()) {

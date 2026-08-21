@@ -44,7 +44,7 @@ class DynamicCaptureSessionManagerTest {
 
         DynamicCaptureSession session = manager.startSession(playerId, "session-a", 0L, 2, 40, 80);
         session.beginRecording();
-        manager.appendFrame(playerId, Frame.EMPTY);
+        manager.appendFrame(playerId, Frame.EMPTY, 0L);
         manager.requestStop(playerId, DynamicCaptureSessionEndReason.RELEASED);
 
         DynamicCaptureSessionResult result = manager.finishSession(playerId, DynamicCaptureSessionEndReason.INVALIDATED);

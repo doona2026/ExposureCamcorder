@@ -40,9 +40,9 @@ public class DynamicCaptureSessionManager {
         return sessionsByPlayer.values().stream().filter(DynamicCaptureSession::isActive).toList();
     }
 
-    public void appendFrame(UUID playerId, Frame frame) {
+    public void appendFrame(UUID playerId, Frame frame, long currentTick) {
         DynamicCaptureSession session = requireActiveSession(playerId);
-        session.appendFrame(frame);
+        session.appendFrame(frame, currentTick);
     }
 
     public void requestStop(UUID playerId, DynamicCaptureSessionEndReason reason) {

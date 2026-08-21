@@ -23,6 +23,7 @@ public class DynamicFrameUploadQueue {
     private final StopSender stopSender;
     private @Nullable String activeSessionId;
     private int acknowledgedFrameCount;
+    private int latestRequestedFrameIndex = -1;
     private boolean stopRequested;
 
     public DynamicFrameUploadQueue() {
@@ -39,6 +40,7 @@ public class DynamicFrameUploadQueue {
     public void startSession(String sessionId) {
         activeSessionId = sessionId;
         acknowledgedFrameCount = 0;
+        latestRequestedFrameIndex = -1;
         stopRequested = false;
     }
 
@@ -48,10 +50,19 @@ public class DynamicFrameUploadQueue {
         }
     }
 
-    public void finishSession(String sessionId) {
-        if (matchesSession(sessionId)) {
-            clearState();
+    public boolean acceptFrameRequest(String sessionId, int frameIndex) {
+        if (!matchesSession(sessionId)
+                || frameIndex < acknowledgedFrameCount
+                || frameIndex < latestRequestedFrameIndex) {
+            return false;
         }
+
+        if (stopRequested && frameIndex != latestRequestedFrameIndex) {
+            return false;
+        }
+
+        latestRequestedFrameIndex = frameIndex;
+        return true;
     }
 
     public boolean submitFrameData(String sessionId, int frameIndex, String exposureId, ExposureData exposureData) {
@@ -60,7 +71,9 @@ public class DynamicFrameUploadQueue {
             return false;
         }
 
-        if (stopRequested || frameIndex < acknowledgedFrameCount) {
+        if (frameIndex < acknowledgedFrameCount
+                || frameIndex < latestRequestedFrameIndex
+                || (stopRequested && frameIndex != latestRequestedFrameIndex)) {
             return false;
         }
 
@@ -98,6 +111,7 @@ public class DynamicFrameUploadQueue {
     private void clearState() {
         activeSessionId = null;
         acknowledgedFrameCount = 0;
+        latestRequestedFrameIndex = -1;
         stopRequested = false;
     }
 }

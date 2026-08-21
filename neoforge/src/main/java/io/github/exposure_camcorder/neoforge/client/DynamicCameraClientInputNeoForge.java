@@ -42,7 +42,6 @@ public final class DynamicCameraClientInputNeoForge {
 
     public static void onClientTick(ClientTickEvent.Post event) {
         Minecraft minecraft = Minecraft.getInstance();
-        DynamicFrameCaptureClient.tick();
         DynamicPhotographDisplayPlaybackManager.getInstance().tick(minecraft);
 
         while (TOGGLE_DYNAMIC_MODE_KEY.consumeClick()) {
