@@ -1,0 +1,164 @@
+{
+  "type": "forge:conditional",
+  "recipes": [
+    {
+      "conditions": [
+        {
+          "type": "forge:mod_loaded",
+          "modid": "create"
+        }
+      ],
+      "recipe": {
+        "type": "create:sequenced_assembly",
+        "ingredient": {
+          "item": "exposure_camcorder:dynamic_ultra_hires_bw_film_600"
+        },
+        "loops": 1,
+        "results": [
+          {
+            "item": "exposure_camcorder:developed_dynamic_bw_film"
+          }
+        ],
+        "sequence": [
+          {
+            "type": "create:filling",
+            "ingredients": [
+              {
+                "item": "exposure_camcorder:dynamic_ultra_hires_bw_film_600"
+              },
+              {
+                "type": "fluid_stack",
+                "amount": 250,
+                "fluid": "minecraft:water"
+              }
+            ],
+            "results": [
+              {
+                "item": "exposure_camcorder:dynamic_ultra_hires_bw_film_600"
+              }
+            ]
+          },
+          {
+            "type": "create:filling",
+            "ingredients": [
+              {
+                "item": "exposure_camcorder:dynamic_ultra_hires_bw_film_600"
+              },
+              {
+                "type": "fluid_stack",
+                "amount": 250,
+                "fluid": "minecraft:water"
+              }
+            ],
+            "results": [
+              {
+                "item": "exposure_camcorder:dynamic_ultra_hires_bw_film_600"
+              }
+            ]
+          },
+          {
+            "type": "create:filling",
+            "ingredients": [
+              {
+                "item": "exposure_camcorder:dynamic_ultra_hires_bw_film_600"
+              },
+              {
+                "type": "fluid_stack",
+                "amount": 250,
+                "fluid": "minecraft:water"
+              }
+            ],
+            "results": [
+              {
+                "item": "exposure_camcorder:dynamic_ultra_hires_bw_film_600"
+              }
+            ]
+          },
+          {
+            "type": "create:deploying",
+            "ingredients": [
+              {
+                "item": "exposure_camcorder:dynamic_ultra_hires_bw_film_600"
+              },
+              {
+                "item": "minecraft:quartz"
+              }
+            ],
+            "results": [
+              {
+                "item": "exposure_camcorder:dynamic_ultra_hires_bw_film_600"
+              }
+            ]
+          },
+          {
+            "type": "create:deploying",
+            "ingredients": [
+              {
+                "item": "exposure_camcorder:dynamic_ultra_hires_bw_film_600"
+              },
+              {
+                "item": "minecraft:quartz"
+              }
+            ],
+            "results": [
+              {
+                "item": "exposure_camcorder:dynamic_ultra_hires_bw_film_600"
+              }
+            ]
+          },
+          {
+            "type": "create:deploying",
+            "ingredients": [
+              {
+                "item": "exposure_camcorder:dynamic_ultra_hires_bw_film_600"
+              },
+              {
+                "item": "minecraft:glowstone_dust"
+              }
+            ],
+            "results": [
+              {
+                "item": "exposure_camcorder:dynamic_ultra_hires_bw_film_600"
+              }
+            ]
+          },
+          {
+            "type": "create:deploying",
+            "ingredients": [
+              {
+                "item": "exposure_camcorder:dynamic_ultra_hires_bw_film_600"
+              },
+              {
+                "item": "minecraft:calcite"
+              }
+            ],
+            "results": [
+              {
+                "item": "exposure_camcorder:dynamic_ultra_hires_bw_film_600"
+              }
+            ]
+          },
+          {
+            "type": "create:deploying",
+            "ingredients": [
+              {
+                "item": "exposure_camcorder:dynamic_ultra_hires_bw_film_600"
+              },
+              {
+                "item": "minecraft:amethyst_shard"
+              }
+            ],
+            "results": [
+              {
+                "item": "exposure_camcorder:dynamic_ultra_hires_bw_film_600"
+              }
+            ]
+          }
+        ],
+        "transitional_item": {
+          "item": "exposure_camcorder:dynamic_ultra_hires_bw_film_600"
+        }
+      }
+    }
+  ]
+}

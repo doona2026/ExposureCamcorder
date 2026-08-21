@@ -1,0 +1,21 @@
+{
+  "required": true,
+  "package": "io.github.exposure_camcorder.compatibility.mixin.neoforge",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "CameraItemMixin"
+  ],
+  "client": [
+    "AlbumScreenMixin",
+    "AlbumViewScreenMixin",
+    "PhotographFrameEntityRendererMixin",
+    "PhotographSlotWidgetMixin",
+    "PhotographScreenAccessor",
+    "PhotographScreenMixin",
+    "PhotographScreenTooltipMixin",
+    "ViewfinderOverlayMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

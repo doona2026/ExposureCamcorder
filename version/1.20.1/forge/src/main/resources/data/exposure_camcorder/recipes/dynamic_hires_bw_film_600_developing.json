@@ -1,0 +1,58 @@
+{
+  "type": "exposure:film_developing",
+  "film": {
+    "item": "exposure_camcorder:dynamic_hires_bw_film_600"
+  },
+  "ingredients": [
+    [
+      {
+        "type": "forge:partial_nbt",
+        "item": "minecraft:potion",
+        "nbt": {
+          "Potion": "minecraft:water"
+        }
+      }
+    ],
+    [
+      {
+        "type": "forge:partial_nbt",
+        "item": "minecraft:potion",
+        "nbt": {
+          "Potion": "minecraft:water"
+        }
+      }
+    ],
+    [
+      {
+        "type": "forge:partial_nbt",
+        "item": "minecraft:potion",
+        "nbt": {
+          "Potion": "minecraft:water"
+        }
+      }
+    ],
+    [
+      {
+        "item": "minecraft:quartz"
+      }
+    ],
+    [
+      {
+        "item": "minecraft:quartz"
+      }
+    ],
+    [
+      {
+        "item": "minecraft:glowstone_dust"
+      }
+    ],
+    [
+      {
+        "item": "minecraft:calcite"
+      }
+    ]
+  ],
+  "result": {
+    "item": "exposure_camcorder:developed_dynamic_bw_film"
+  }
+}

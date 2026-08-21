@@ -1,4 +1,14 @@
-﻿# Development Progress
+# Development Progress
+
+## Stage 1 Requirement Exploration
+- Started at: 2026-08-20
+- Design doc: `docs/superpowers/specs/2026-08-20-version-1.20.1-dual-line-design.md`
+- Scope: keep the current 1.21.1 line and add a `version/1.20.1` independent Fabric + Forge line
+
+## Stage 2 Implementation Planning
+- Started at: 2026-08-20
+- Plan doc: `docs/superpowers/plans/2026-08-20-version-1.20.1-dual-line-plan.md`
+- Status: draft, awaiting approval
 
 ## Stage 1 Requirement Exploration
 - Completed at: 2026-08-19
@@ -45,7 +55,5 @@
   - Verified `:common:test`, `:common:compileJava`, and `:common:processResources`.
   - Left `fabric` and `neoforge` source skeletons on disk, but temporarily excluded them from `settings.gradle` until the platform build wiring is completed.
 
-
 ## Stage 3 Plan Execution (1.20.1 dual-line)
 - Completed: all tasks done; Fabric, Forge 47, and 1.21.1 regression builds pass.
-

@@ -1,0 +1,49 @@
+{
+  "type": "exposure:film_developing",
+  "film": {
+    "item": "exposure_camcorder:dynamic_ultra_hires_bw_film_320"
+  },
+  "ingredients": [
+    [
+      {
+        "type": "forge:partial_nbt",
+        "item": "minecraft:potion",
+        "nbt": {
+          "Potion": "minecraft:water"
+        }
+      }
+    ],
+    [
+      {
+        "type": "forge:partial_nbt",
+        "item": "minecraft:potion",
+        "nbt": {
+          "Potion": "minecraft:water"
+        }
+      }
+    ],
+    [
+      {
+        "item": "minecraft:quartz"
+      }
+    ],
+    [
+      {
+        "item": "minecraft:quartz"
+      }
+    ],
+    [
+      {
+        "item": "minecraft:calcite"
+      }
+    ],
+    [
+      {
+        "item": "minecraft:amethyst_shard"
+      }
+    ]
+  ],
+  "result": {
+    "item": "exposure_camcorder:developed_dynamic_bw_film"
+  }
+}

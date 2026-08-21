@@ -1,0 +1,52 @@
+{
+  "type": "exposure:film_developing",
+  "film": {
+    "item": "exposure_camcorder:dynamic_film_160"
+  },
+  "ingredients": [
+    [
+      {
+        "type": "forge:partial_nbt",
+        "item": "minecraft:potion",
+        "nbt": {
+          "Potion": "minecraft:awkward"
+        }
+      }
+    ],
+    [
+      {
+        "type": "forge:partial_nbt",
+        "item": "minecraft:potion",
+        "nbt": {
+          "Potion": "minecraft:thick"
+        }
+      }
+    ],
+    [
+      {
+        "type": "forge:partial_nbt",
+        "item": "minecraft:potion",
+        "nbt": {
+          "Potion": "minecraft:thick"
+        }
+      }
+    ],
+    [
+      {
+        "type": "forge:partial_nbt",
+        "item": "minecraft:potion",
+        "nbt": {
+          "Potion": "minecraft:mundane"
+        }
+      }
+    ],
+    [
+      {
+        "item": "minecraft:glowstone_dust"
+      }
+    ]
+  ],
+  "result": {
+    "item": "exposure_camcorder:developed_dynamic_film"
+  }
+}

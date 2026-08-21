@@ -1,0 +1,134 @@
+{
+  "type": "forge:conditional",
+  "recipes": [
+    {
+      "conditions": [
+        {
+          "type": "forge:mod_loaded",
+          "modid": "create"
+        }
+      ],
+      "recipe": {
+        "type": "create:sequenced_assembly",
+        "ingredient": {
+          "item": "exposure_camcorder:dynamic_hires_film_10s"
+        },
+        "loops": 1,
+        "results": [
+          {
+            "item": "exposure_camcorder:developed_dynamic_film"
+          }
+        ],
+        "sequence": [
+          {
+            "type": "create:filling",
+            "ingredients": [
+              {
+                "item": "exposure_camcorder:dynamic_hires_film_10s"
+              },
+              {
+                "type": "fluid_stack",
+                "amount": 250,
+                "components": {
+                  "create:potion_fluid_bottle_type": "regular",
+                  "minecraft:potion_contents": {
+                    "potion": "minecraft:awkward"
+                  }
+                },
+                "fluid": "create:potion"
+              }
+            ],
+            "results": [
+              {
+                "item": "exposure_camcorder:dynamic_hires_film_10s"
+              }
+            ]
+          },
+          {
+            "type": "create:filling",
+            "ingredients": [
+              {
+                "item": "exposure_camcorder:dynamic_hires_film_10s"
+              },
+              {
+                "type": "fluid_stack",
+                "amount": 250,
+                "components": {
+                  "create:potion_fluid_bottle_type": "regular",
+                  "minecraft:potion_contents": {
+                    "potion": "minecraft:thick"
+                  }
+                },
+                "fluid": "create:potion"
+              }
+            ],
+            "results": [
+              {
+                "item": "exposure_camcorder:dynamic_hires_film_10s"
+              }
+            ]
+          },
+          {
+            "type": "create:filling",
+            "ingredients": [
+              {
+                "item": "exposure_camcorder:dynamic_hires_film_10s"
+              },
+              {
+                "type": "fluid_stack",
+                "amount": 250,
+                "components": {
+                  "create:potion_fluid_bottle_type": "regular",
+                  "minecraft:potion_contents": {
+                    "potion": "minecraft:mundane"
+                  }
+                },
+                "fluid": "create:potion"
+              }
+            ],
+            "results": [
+              {
+                "item": "exposure_camcorder:dynamic_hires_film_10s"
+              }
+            ]
+          },
+          {
+            "type": "create:deploying",
+            "ingredients": [
+              {
+                "item": "exposure_camcorder:dynamic_hires_film_10s"
+              },
+              {
+                "item": "minecraft:glowstone_dust"
+              }
+            ],
+            "results": [
+              {
+                "item": "exposure_camcorder:dynamic_hires_film_10s"
+              }
+            ]
+          },
+          {
+            "type": "create:deploying",
+            "ingredients": [
+              {
+                "item": "exposure_camcorder:dynamic_hires_film_10s"
+              },
+              {
+                "item": "minecraft:amethyst_shard"
+              }
+            ],
+            "results": [
+              {
+                "item": "exposure_camcorder:dynamic_hires_film_10s"
+              }
+            ]
+          }
+        ],
+        "transitional_item": {
+          "item": "exposure_camcorder:dynamic_hires_film_10s"
+        }
+      }
+    }
+  ]
+}
