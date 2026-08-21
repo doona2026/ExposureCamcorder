@@ -2,6 +2,7 @@ package io.github.exposure_camcorder.fabric.network;
 
 import io.github.exposure_camcorder.network.packet.c2s.DynamicCameraModeToggleC2SP;
 import io.github.exposure_camcorder.network.packet.c2s.DynamicCaptureFrameDataC2SP;
+import io.github.exposure_camcorder.network.packet.c2s.DynamicCaptureHeartbeatC2SP;
 import io.github.exposure_camcorder.network.packet.c2s.DynamicCaptureStopC2SP;
 import io.github.exposure_camcorder.network.packet.s2c.DynamicCaptureStartS2CP;
 import io.github.exposure_camcorder.network.packet.s2c.DynamicCaptureStateS2CP;
@@ -22,6 +23,7 @@ public final class FabricPackets {
     public static void registerReceivers() {
         ServerPlayNetworking.registerGlobalReceiver(DynamicCameraModeToggleC2SP.ID, FabricPackets::handleServerboundToggle);
         ServerPlayNetworking.registerGlobalReceiver(DynamicCaptureFrameDataC2SP.ID, FabricPackets::handleServerboundFrameData);
+        ServerPlayNetworking.registerGlobalReceiver(DynamicCaptureHeartbeatC2SP.ID, FabricPackets::handleServerboundHeartbeat);
         ServerPlayNetworking.registerGlobalReceiver(DynamicCaptureStopC2SP.ID, FabricPackets::handleServerboundStop);
     }
 
@@ -48,6 +50,13 @@ public final class FabricPackets {
                                               ServerGamePacketListenerImpl handler,
                                               FriendlyByteBuf buf, net.fabricmc.fabric.api.networking.v1.PacketSender responseSender) {
         DynamicCaptureStopC2SP packet = DynamicCaptureStopC2SP.read(buf);
+        server.execute(() -> packet.handle(PacketFlow.SERVERBOUND, player));
+    }
+
+    private static void handleServerboundHeartbeat(MinecraftServer server, ServerPlayer player,
+                                                   ServerGamePacketListenerImpl handler,
+                                                   FriendlyByteBuf buf, net.fabricmc.fabric.api.networking.v1.PacketSender responseSender) {
+        DynamicCaptureHeartbeatC2SP packet = DynamicCaptureHeartbeatC2SP.read(buf);
         server.execute(() -> packet.handle(PacketFlow.SERVERBOUND, player));
     }
 

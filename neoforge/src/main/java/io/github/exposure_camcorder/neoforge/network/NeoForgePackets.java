@@ -3,6 +3,7 @@ package io.github.exposure_camcorder.neoforge.network;
 import io.github.exposure_camcorder.network.packet.HandledPayload;
 import io.github.exposure_camcorder.network.packet.c2s.DynamicCameraModeToggleC2SP;
 import io.github.exposure_camcorder.network.packet.c2s.DynamicCaptureFrameDataC2SP;
+import io.github.exposure_camcorder.network.packet.c2s.DynamicCaptureHeartbeatC2SP;
 import io.github.exposure_camcorder.network.packet.c2s.DynamicCaptureStopC2SP;
 import io.github.exposure_camcorder.network.packet.s2c.DynamicCaptureStartS2CP;
 import io.github.exposure_camcorder.network.packet.s2c.DynamicCaptureStateS2CP;
@@ -27,6 +28,8 @@ public final class NeoForgePackets {
         registrar.playToServer(DynamicCameraModeToggleC2SP.TYPE, DynamicCameraModeToggleC2SP.STREAM_CODEC,
                 NeoForgePackets::handleServerboundPacket);
         registrar.playToServer(DynamicCaptureFrameDataC2SP.TYPE, DynamicCaptureFrameDataC2SP.STREAM_CODEC,
+                NeoForgePackets::handleServerboundPacket);
+        registrar.playToServer(DynamicCaptureHeartbeatC2SP.TYPE, DynamicCaptureHeartbeatC2SP.STREAM_CODEC,
                 NeoForgePackets::handleServerboundPacket);
         registrar.playToServer(DynamicCaptureStopC2SP.TYPE, DynamicCaptureStopC2SP.STREAM_CODEC,
                 NeoForgePackets::handleServerboundPacket);

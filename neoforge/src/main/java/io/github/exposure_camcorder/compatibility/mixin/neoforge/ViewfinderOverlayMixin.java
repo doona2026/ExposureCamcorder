@@ -5,6 +5,7 @@ import io.github.exposure_camcorder.compatibility.exposure.ExposureViewfinderOve
 import io.github.mortuusars.exposure.client.camera.viewfinder.ViewfinderOverlay;
 import io.github.mortuusars.exposure.util.Rect2f;
 import io.github.mortuusars.exposure.world.camera.Camera;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.gui.GuiGraphics;
 import org.spongepowered.asm.mixin.Final;
@@ -21,11 +22,15 @@ public abstract class ViewfinderOverlayMixin {
 
     @Inject(method = "render", at = @At("HEAD"))
     private void exposureCamcorder$captureDynamicFrame(GuiGraphics guiGraphics, DeltaTracker deltaTracker, CallbackInfo ci) {
-        ViewfinderDirectScreenshotCaptureTask.capturePending();
+        if (Minecraft.getInstance().getCameraEntity() != null) {
+            ViewfinderDirectScreenshotCaptureTask.capturePending();
+        }
     }
 
     @Inject(method = "render", at = @At("TAIL"))
     private void exposureCamcorder$renderDynamicRecordingHud(GuiGraphics guiGraphics, DeltaTracker deltaTracker, CallbackInfo ci) {
-        ExposureViewfinderOverlayHooks.renderRecordingHud(guiGraphics, camera.getItemStack(), opening);
+        if (Minecraft.getInstance().getCameraEntity() != null) {
+            ExposureViewfinderOverlayHooks.renderRecordingHud(guiGraphics, camera.getItemStack(), opening);
+        }
     }
 }

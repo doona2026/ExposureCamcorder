@@ -28,6 +28,7 @@ public class DynamicCaptureSession {
     private State state = State.STARTING;
     private DynamicCaptureSessionEndReason endReason;
     private long lastFrameReceivedTick;
+    private long lastClientActivityTick;
     private long stopRequestedTick = -1L;
 
     public DynamicCaptureSession(String sessionId, UUID playerId, long startTick, int captureIntervalTicks,
@@ -44,6 +45,7 @@ public class DynamicCaptureSession {
         this.frames = new ArrayList<>(maxFrames);
         this.framesView = Collections.unmodifiableList(frames);
         this.lastFrameReceivedTick = startTick;
+        this.lastClientActivityTick = startTick;
     }
 
     public String sessionId() {
@@ -129,13 +131,18 @@ public class DynamicCaptureSession {
 
     public void markFrameReceived(long currentTick) {
         lastFrameReceivedTick = currentTick;
+        lastClientActivityTick = currentTick;
+    }
+
+    public void markClientActivity(long currentTick) {
+        lastClientActivityTick = currentTick;
     }
 
     public boolean hasStalled(long currentTick, int stallTicks) {
         if (state != State.RECORDING || stallTicks <= 0) {
             return false;
         }
-        return currentTick - lastFrameReceivedTick >= stallTicks;
+        return currentTick - lastClientActivityTick >= stallTicks;
     }
 
     public void requestStop(DynamicCaptureSessionEndReason reason) {

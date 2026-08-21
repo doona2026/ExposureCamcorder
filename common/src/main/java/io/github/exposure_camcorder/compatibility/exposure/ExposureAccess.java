@@ -48,6 +48,16 @@ public class ExposureAccess {
         return true;
     }
 
+    public static boolean receiveHeartbeat(ServerPlayer player, String sessionId) {
+        Optional<DynamicCaptureSession> sessionOpt = ExposureCamcorder.captureSessionManager().getActiveSession(player.getUUID());
+        if (sessionOpt.isEmpty() || !sessionOpt.get().sessionId().equals(sessionId)) {
+            return false;
+        }
+
+        sessionOpt.get().markClientActivity(player.level().getGameTime());
+        return true;
+    }
+
     public static boolean requestStop(ServerPlayer player, String sessionId, DynamicCaptureSessionEndReason reason) {
         Optional<DynamicCaptureSession> sessionOpt = ExposureCamcorder.captureSessionManager().getActiveSession(player.getUUID());
         if (sessionOpt.isEmpty()) {

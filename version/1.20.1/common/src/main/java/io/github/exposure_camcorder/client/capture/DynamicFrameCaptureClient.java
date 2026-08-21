@@ -5,6 +5,7 @@ import io.github.exposure_camcorder.ExposureCamcorder;
 import io.github.exposure_camcorder.PlatformHelper;
 import io.github.exposure_camcorder.compatibility.exposure.ExposureAccess;
 import io.github.exposure_camcorder.network.packet.c2s.DynamicCaptureFrameDataC2SP;
+import io.github.exposure_camcorder.network.packet.c2s.DynamicCaptureHeartbeatC2SP;
 import io.github.exposure_camcorder.network.packet.c2s.DynamicCaptureStopC2SP;
 import io.github.exposure_camcorder.network.packet.s2c.DynamicCaptureStartS2CP;
 import io.github.exposure_camcorder.network.packet.s2c.DynamicCaptureStateS2CP;
@@ -38,6 +39,7 @@ import org.slf4j.Logger;
 public class DynamicFrameCaptureClient {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final int MAX_CONSECUTIVE_CAPTURE_FAILURES = 40;
+    private static final int HEARTBEAT_INTERVAL_TICKS = 20;
     private static final CaptureTemplate CAPTURE_SUPPORT = new CaptureTemplate() {
         @Override
         public Task<?> createTask(CaptureParameters params) {
@@ -56,6 +58,7 @@ public class DynamicFrameCaptureClient {
     private static long lastCaptureGameTime = -1L;
     private static long captureEnqueuedGameTime = -1L;
     private static long lastStuckWarningGameTime = -1L;
+    private static long lastHeartbeatGameTime = -1L;
     private static boolean keyUseWasDown;
     private static boolean freshPressPending;
     private static int consecutiveCaptureFailures;
@@ -105,6 +108,7 @@ public class DynamicFrameCaptureClient {
         }
 
         long currentGameTime = mc.level.getGameTime();
+        sendHeartbeatIfDue(currentGameTime);
 
         if (recordingState.recordedFrames() >= maxFrames) {
             requestStop(DynamicCaptureSessionEndReason.FILM_EXHAUSTED);
@@ -125,7 +129,6 @@ public class DynamicFrameCaptureClient {
         if (lastCaptureGameTime >= 0L && currentGameTime - lastCaptureGameTime < captureIntervalTicks) {
             return;
         }
-        lastCaptureGameTime = currentGameTime;
         captureInFlight = true;
         captureEnqueuedGameTime = currentGameTime;
         ExposureClient.cycles().enqueueTask(createCaptureTask(nextFrameIndex));
@@ -170,6 +173,7 @@ public class DynamicFrameCaptureClient {
         lastCaptureGameTime = -1L;
         captureEnqueuedGameTime = -1L;
         lastStuckWarningGameTime = -1L;
+        lastHeartbeatGameTime = -1L;
         freshPressPending = false;
         consecutiveCaptureFailures = 0;
     }
@@ -234,6 +238,7 @@ public class DynamicFrameCaptureClient {
 
     private static void onFrameCaptured(String sessionIdAtEnqueue, int frameIndex, ExposureData exposureData) {
         captureInFlight = false;
+        markCaptureCompleted();
         consecutiveCaptureFailures = 0;
         if (sessionId == null || !sessionId.equals(sessionIdAtEnqueue)) {
             return;
@@ -254,6 +259,7 @@ public class DynamicFrameCaptureClient {
 
     private static void onFrameCaptureFailed(int frameIndex, TranslatableError error) {
         captureInFlight = false;
+        markCaptureCompleted();
         LOGGER.warn("Failed to capture frame {} of session '{}': {} ({})", frameIndex, sessionId, error.key(), error.code());
         onFrameCaptureFailed();
     }
@@ -276,5 +282,26 @@ public class DynamicFrameCaptureClient {
 
     private static boolean isIrisOrOculusLoaded() {
         return PlatformHelper.isModLoaded("iris") || PlatformHelper.isModLoaded("oculus");
+    }
+
+    private static void markCaptureCompleted() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level != null) {
+            lastCaptureGameTime = mc.level.getGameTime();
+        }
+        captureEnqueuedGameTime = -1L;
+    }
+
+    private static void sendHeartbeatIfDue(long currentGameTime) {
+        if (sessionId == null || stopRequested) {
+            return;
+        }
+        if (lastHeartbeatGameTime >= 0L
+                && currentGameTime - lastHeartbeatGameTime < HEARTBEAT_INTERVAL_TICKS) {
+            return;
+        }
+
+        lastHeartbeatGameTime = currentGameTime;
+        Packets.sendToServer(new DynamicCaptureHeartbeatC2SP(sessionId));
     }
 }

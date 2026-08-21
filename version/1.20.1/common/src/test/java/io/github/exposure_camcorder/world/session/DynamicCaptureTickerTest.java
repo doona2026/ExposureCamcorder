@@ -101,6 +101,23 @@ class DynamicCaptureTickerTest {
     }
 
     @Test
+    void clientActivityResetsTheStallTimerWhileHighResolutionFrameIsProcessing() {
+        DynamicCaptureSession session = session(0, 2, 600, 10000);
+        DynamicCaptureTicker ticker = new DynamicCaptureTicker(200, 100);
+
+        ticker.tickSession(session, 0L);
+        session.markClientActivity(350L);
+
+        DynamicCaptureTicker.TickResult beforeStall = ticker.tickSession(session, 549L);
+        assertNull(beforeStall.completedSession());
+        assertTrue(session.isRecording());
+
+        DynamicCaptureTicker.TickResult stalledTick = ticker.tickSession(session, 550L);
+        assertNull(stalledTick.completedSession());
+        assertTrue(session.isStopping());
+    }
+
+    @Test
     void framesArrivingDuringGraceAreIncludedInThePartialRecording() {
         DynamicCaptureSession session = session(0, 2, 40, 1000);
         DynamicCaptureTicker ticker = new DynamicCaptureTicker();
